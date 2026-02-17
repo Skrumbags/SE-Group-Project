@@ -7,7 +7,7 @@ If you find your task is easier/shorter than expected, let people know and help 
 By Wednesday 2/11:
   Everyone: Decide which two other fully-dressed use cases you will make and list them below (mark completed when you've finished them all)
     Matt: Check in a Guest, Check out a Guest, Search Reservations
-    Duane: Cancel Reservation, 
+    Duane: Cancel Reservation, Modify Reservation, Add guest to reservation
     Andrew: Login, Create Account, Purchase Items & Generate Combined Bill
     Emmanuel: Reset Password, 
     Hannah: Book a Reservation, Update Room Information, Monitor Room Status (COMPLETED)
