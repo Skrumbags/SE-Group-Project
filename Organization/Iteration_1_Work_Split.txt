@@ -9,7 +9,7 @@ By Wednesday 2/11:
     Matt: Check in a Guest, Check out a Guest, Search Reservations
     Duane: Cancel Reservation, Modify Reservation, Add guest to reservation
     Andrew: Login, Create Account, Purchase Items & Generate Combined Bill
-    Emmanuel: Reset Password, 
+    Emmanuel: Reset Password, Create Clerk Account, Logout
     Hannah: Book a Reservation, Update Room Information, Monitor Room Status (COMPLETED)
 
 By Monday 2/16:
