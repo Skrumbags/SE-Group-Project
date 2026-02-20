@@ -1,0 +1,12 @@
+Work to complete before Presentation on Thursday
+
+Emmanuel: Add Logout use case
+Emmanuel, Duane, Hannah: Complete SSDs and Operation Contracts for your 3 use cases (see Matt's and Andrew's for OC template)
+Matt: Finish Use Case Diagram, finalize PDF deliverable
+Duane, Andrew: Make Presentation (Others can help if needed, but most of it should be copy paste. Look on Canvas for what to include.)
+Everyone: Add tickets to Trello for things you have already done or need to do/fix
+
+Notes on Presentation:
+  Probably don't need to put entire use cases in there, probably can put use case name along with operation contract and SSD
+  Include hours worked, # of commits, etc. for each person
+  Everyone can present the slides for the things they made

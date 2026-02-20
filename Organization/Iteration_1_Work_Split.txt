@@ -1,0 +1,24 @@
+Work Split for Iteration 1:
+
+When finished with a task, put "COMPLETED" at the end of the line
+If you find your task is more difficult/longer than expected and want help, let people know
+If you find your task is easier/shorter than expected, let people know and help out elsewhere
+
+By Wednesday 2/11:
+  Everyone: Decide which two other fully-dressed use cases you will make and list them below (mark completed when you've finished them all)
+    Matt: Check in a Guest, Check out a Guest, Search Reservations
+    Duane: Cancel Reservation, Modify Reservation, Add guest to reservation
+    Andrew: Login, Create Account, Purchase Items & Generate Combined Bill
+    Emmanuel: Reset Password, Create Clerk Account, Logout
+    Hannah: Book a Reservation, Update Room Information, Monitor Room Status (COMPLETED)
+
+By Monday 2/16:
+  Everyone: Complete three fully-dressed use cases along with SSDs and Operation Contracts 
+              Remember that some use cases may include things in others, e.g., Modify Reservation doesn't have to detail how to search for the reservation since Search Reservations does that
+            Add to Trello any tickets for your job (things you need to fix later) and check them off when done
+            Help on Presentation when done with your work
+  Matt: Complete Use Case Diagram, create PDF Deliverable
+  Duane: Create Presentation
+  Andrew: (She said we don't need a website for this iteration so I can help anyone else with anything they need help on)
+  Emmanuel: Create Domain Model
+  Hannah: Create Wireframe drafts (UI sketches)
