@@ -3,7 +3,7 @@ package Testing;
 import Rooms.Room;
 import Rooms.RoomType;
 
-public class RoomAndRoomTypeTesting {
+public class AddRoomTesting {
     public static void main(String[] args) {
         System.out.print("--------ROOM TESTING--------");
         System.out.println();

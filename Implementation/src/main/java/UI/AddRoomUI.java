@@ -1,0 +1,60 @@
+package UI;
+
+import Rooms.Room;
+import Rooms.RoomType;
+import Rooms.RoomType.FloorType;
+import Rooms.RoomType.BedType;
+import RoomCatalog.RoomCatalog;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class AddRoomUI extends JPanel {
+
+    private RoomCatalog catalog;
+
+    private JTextField roomNumberField = new JTextField(10);
+    private JTextField dailyRateField = new JTextField(10);
+    private JComboBox<FloorType> floorTypeBox = new JComboBox<>(FloorType.values());
+    private JComboBox<BedType> bedTypeBox = new JComboBox<>(BedType.values());
+    private JCheckBox smokingCheck = new JCheckBox();
+
+    public AddRoomUI(RoomCatalog catalog) {
+        this.catalog = catalog;
+        setLayout(new GridLayout(6, 2, 5, 5));
+
+        add(new JLabel("Room Number:"));  add(roomNumberField);
+        add(new JLabel("Floor Type:"));   add(floorTypeBox);
+        add(new JLabel("Bed Type:"));     add(bedTypeBox);
+        add(new JLabel("Smoking:"));      add(smokingCheck);
+        add(new JLabel("Daily Rate:"));   add(dailyRateField);
+
+        JButton addButton = new JButton("Add Room");
+        add(new JLabel()); // spacer
+        add(addButton);
+
+        addButton.addActionListener(e -> handleAddRoom());
+    }
+
+    private void handleAddRoom() {
+        try {
+            int roomNumber = Integer.parseInt(roomNumberField.getText().trim());
+            double dailyRate = Double.parseDouble(dailyRateField.getText().trim());
+            RoomType roomType = new RoomType(
+                    (FloorType) floorTypeBox.getSelectedItem(),
+                    (BedType) bedTypeBox.getSelectedItem()
+            );
+
+            Room newRoom = new Room(roomNumber, smokingCheck.isSelected(), false, dailyRate, roomType);
+            boolean success = catalog.addRoom(newRoom);
+
+            if (success) {
+                JOptionPane.showMessageDialog(this, "Room " + roomNumber + " added!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Room " + roomNumber + " already exists!");
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter valid numbers.");
+        }
+    }
+}

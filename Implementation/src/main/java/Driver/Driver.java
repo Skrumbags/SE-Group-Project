@@ -9,10 +9,10 @@
 package Driver;
 
 // Imports for Room + RoomType
-import Rooms.Room;
-import Rooms.RoomType;
-import Rooms.RoomType.FloorType;
-import Rooms.RoomType.BedType;
+import RoomCatalog.RoomCatalog;
+import UI.AddRoomUI;
+
+import javax.swing.*;
 
 
 public class Driver {
@@ -25,6 +25,16 @@ public class Driver {
          *
          *  Display UI's
          */
+
+        // Room UI
+        RoomCatalog catalog = new RoomCatalog();
+
+        JFrame frame = new JFrame("Hotel - Add Room");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(new AddRoomUI(catalog));
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
 
     }
 
