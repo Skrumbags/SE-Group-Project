@@ -10,23 +10,19 @@
 package Utility;
 
 import Rooms.RoomType;
-import java.util.Calendar;
 
 public class SearchCriteria {
-    private final Calendar checkInDate;
-    private final Calendar checkOutDate;
+    private final DateRange dateRange;
     private final RoomType roomType;
     private final int numGuests;
 
-    public SearchCriteria(Calendar checkInDate, Calendar checkOutDate, RoomType roomType, int numGuests) {
-        this.checkInDate = checkInDate;
-        this.checkOutDate = checkOutDate;
+    public SearchCriteria(DateRange dateRange, RoomType roomType, int numGuests) {
+        this.dateRange = dateRange;
         this.roomType = roomType;
         this.numGuests = numGuests;
     }
 
-    public Calendar getCheckInDate() { return checkInDate; }
-    public Calendar getCheckOutDate() { return checkOutDate; }
+    public DateRange getDateRange() { return dateRange; }
     public RoomType getRoomType() { return roomType; }
     public int getNumGuests() { return numGuests; }
 }

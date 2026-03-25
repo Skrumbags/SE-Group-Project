@@ -11,6 +11,8 @@
 
 package Rooms;
 
+import java.util.Objects;
+
 public class RoomType {
     private FloorType floorType;
     private BedType bedType;
@@ -24,16 +26,16 @@ public class RoomType {
         this.bedType = bedType;
     }
 
-    public String getFloorType() {
-        return floorType.toString();
+    public FloorType getFloorType() {
+        return floorType;
     }
 
     public void setFloorType(FloorType floorType) {
         this.floorType = floorType;
     }
 
-    public String getBedType() {
-        return bedType.toString();
+    public BedType getBedType() {
+        return bedType;
     }
 
     public void setBedType(BedType bedType) {
@@ -47,6 +49,8 @@ public class RoomType {
         return this.floorType == rt.floorType && this.bedType == rt.bedType;
     }
 
-    //@Override
-    //public int hashCode(FloorType floorType, )
+    @Override
+    public int hashCode() {
+        return Objects.hash(floorType, bedType);
+    }
 }
