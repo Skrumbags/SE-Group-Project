@@ -1,5 +1,15 @@
-package org.example;
+/*
+ *  Filename: RoomCatalog.java
+ *  Date Created: 3/24/2026
+ *  Date Last Modified: 3/24/2026
+ *  Authors: Hannah Ross, XXX
+ *  File Description:
+ *      XXXX
+ */
 
+package RoomCatalog;
+
+import Rooms.Room;
 import java.util.ArrayList;
 
 public class RoomCatalog {

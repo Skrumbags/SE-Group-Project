@@ -1,27 +1,28 @@
-package org.example;
+/*
+ *  Filename: Room.java
+ *  Date Created: 3/24/2026
+ *  Date Last Modified: 3/24/2026
+ *  Authors: Hannah Ross, XXX
+ *  File Description:
+ *      XXXX
+ */
+
+package Rooms;
 
 public class Room {
     private int roomNumber;
-    private FloorType floorType;
-    private BedType bedType;
     private boolean smoking; //T = smoking, F = nonsmoking
     private boolean availability = false; // set to true when added
     private double maxDailyRate = 0; // decide value later?
     private int roomCapacity; // maybe?
+    private RoomType roomType;
 
-    // enums - too much variability with inputs
-    public enum FloorType { NATURAL, URBAN, VINTAGE }
-    public enum BedType { SINGLE, DOUBLE, QUEEN }
-
-
-    public Room(int roomNumber, FloorType floorType, BedType bedType,
-                boolean smoking, boolean availability, double maxDailyRate){
+    public Room(int roomNumber, boolean smoking, boolean availability, double maxDailyRate, RoomType roomType){
         this.roomNumber = roomNumber;
-        this.floorType = floorType;
-        this.bedType = bedType;
         this.smoking = smoking;
         this.availability = availability;
         this.maxDailyRate = maxDailyRate;
+        this.roomType = roomType;
     }
 
     public int getRoomNumber() {
@@ -33,22 +34,6 @@ public class Room {
             throw new InvalidRoomNumber("Room Number must be greater than 0.");
         }
         this.roomNumber = roomNumber;
-    }
-
-    public String getTypeOfFloor() {
-        return floorType.toString();
-    }
-
-    public void setTypeOfFloor(String typeOfFloor) {
-        this.floorType = FloorType.valueOf(typeOfFloor);
-    }
-
-    public String getTypeOfBeds() {
-        return bedType.toString();
-    }
-
-    public void setTypeOfBeds(String typeOfBeds) {
-        this.bedType = BedType.valueOf(typeOfBeds);
     }
 
     public boolean isSmoking() {
@@ -70,6 +55,10 @@ public class Room {
     public double getMaxDailyRate() {
         return maxDailyRate;
     }
+
+    public void setRoomType(RoomType roomType) { this.roomType = roomType; }
+
+    public RoomType getRoomType() { return roomType; }
 
     public void setMaxDailyRate(double maxDailyRate) throws InvalidMaxDailyRate {
         if  (maxDailyRate < 1) {
