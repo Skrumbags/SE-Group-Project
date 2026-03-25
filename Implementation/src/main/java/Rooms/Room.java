@@ -9,6 +9,8 @@
 
 package Rooms;
 
+import java.util.Objects;
+
 public class Room {
     private int roomNumber;
     private boolean smoking; //T = smoking, F = nonsmoking
@@ -79,6 +81,17 @@ public class Room {
         public InvalidMaxDailyRate(String message) {
             super(message);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Room)) return false;
+        Room r = (Room) o;
+        return this.roomNumber == r.roomNumber;
+    }
+    @Override
+    public int hashCode() {
+        return Objects.hash(roomNumber);
     }
 
 }
