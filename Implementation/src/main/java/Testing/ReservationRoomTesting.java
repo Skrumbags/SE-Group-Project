@@ -16,14 +16,17 @@ import RoomCatalog.RoomCatalog;
 import Rooms.Room;
 import Rooms.RoomType;
 import UseCases.ReserveRoom;
+import UI.ReserveRoomUI;
 import Utility.DateRange;
 import Utility.ReservationService;
 
+import javax.swing.JFrame;
 import java.util.List;
 
 public class ReservationRoomTesting {
     public static void main(String[] args) {
         testReserveRoomHappyPath();
+        launchReserveRoomUI();
     }
 
     private static void testReserveRoomHappyPath() {
@@ -69,6 +72,39 @@ public class ReservationRoomTesting {
         assertTrue("John Doe".equals(saved.getGuestName()), "Saved reservation should store guest name.");
 
         System.out.println("ReserveRoom happy-path test passed.");
+    }
+
+    private static void launchReserveRoomUI() {
+        UserSession userSession = new UserSession();
+        userSession.login(new Guest());
+
+        RoomCatalog roomCatalog = new RoomCatalog();
+        // Add a couple sample rooms so the UI dropdown isn't empty.
+        roomCatalog.addRoom(new Room(
+                101,
+                false,
+                true,
+                120.00,
+                new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
+        ));
+        roomCatalog.addRoom(new Room(
+                102,
+                false,
+                true,
+                150.00,
+                new RoomType(RoomType.FloorType.URBAN, RoomType.BedType.DOUBLE)
+        ));
+
+        ReservationService reservationService = new ReservationService();
+
+        ReserveRoomUI ui = new ReserveRoomUI(userSession, roomCatalog, reservationService);
+
+        JFrame frame = new JFrame("Hotel - Reserve Room");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setContentPane(ui);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
     private static void assertTrue(boolean condition, String message) {
