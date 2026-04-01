@@ -16,8 +16,8 @@ public class AddUserUI extends JPanel {
     private final JTextField phoneField     = new JTextField(15);
     private final JTextField emailField     = new JTextField(15);
 
-    public AddUserUI(UserCatalog catalog) {
-        this.userController = new UserController(catalog);
+    public AddUserUI(UserController userController) {
+        this.userController = userController;
         setLayout(new GridLayout(6, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 

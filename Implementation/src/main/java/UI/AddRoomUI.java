@@ -5,13 +5,14 @@ import Rooms.RoomType;
 import Rooms.RoomType.FloorType;
 import Rooms.RoomType.BedType;
 import RoomCatalog.RoomCatalog;
+import Utility.RoomService;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class AddRoomUI extends JPanel {
 
-    private RoomCatalog catalog;
+    private RoomService roomService;
 
     private JTextField roomNumberField = new JTextField(10);
     private JTextField dailyRateField = new JTextField(10);
@@ -19,8 +20,8 @@ public class AddRoomUI extends JPanel {
     private JComboBox<BedType> bedTypeBox = new JComboBox<>(BedType.values());
     private JCheckBox smokingCheck = new JCheckBox();
 
-    public AddRoomUI(RoomCatalog catalog) {
-        this.catalog = catalog;
+    public AddRoomUI(RoomService roomService) {
+        this.roomService = roomService;
         setLayout(new GridLayout(6, 2, 5, 5));
 
         add(new JLabel("Room Number:"));  add(roomNumberField);
@@ -46,7 +47,7 @@ public class AddRoomUI extends JPanel {
             );
 
             Room newRoom = new Room(roomNumber, smokingCheck.isSelected(), false, dailyRate, roomType);
-            boolean success = catalog.addRoom(newRoom);
+            boolean success = roomService.addRoom(newRoom);
 
             if (success) {
                 JOptionPane.showMessageDialog(this, "Room " + roomNumber + " added!");

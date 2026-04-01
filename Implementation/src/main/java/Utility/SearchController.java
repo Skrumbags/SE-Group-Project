@@ -30,4 +30,6 @@ public class SearchController {
 
         return ResS.calculateOverlap(potentialMatches, criteria.getDateRange());
     }
+
+    public RoomService getRoomService() { return RS; }
 }

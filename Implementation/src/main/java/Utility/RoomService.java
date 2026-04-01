@@ -31,4 +31,12 @@ public class RoomService {
     }
 
     public List<Room> getRooms() { return catalog.getRooms(); }
+
+    /**
+     * Adds a room to the catalog and marks it as available.
+     * return true if added successfully, false if a room with that number already exists
+     */
+    public boolean addRoom(Room room) {
+        return catalog.addRoom(room);
+    }
 }

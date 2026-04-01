@@ -1,0 +1,119 @@
+/*
+ *  Filename: ReserveRoom.java
+ *  Date Created: 3/24/2026
+ *  Date Last Modified: 3/25/2026
+ *  File Description:
+ *      Reserve room use case: requires a logged-in guest, validates input and availability,
+ *      produces a cost summary, then persists after guest approval.
+ *
+ *  Flow (UI collects steps 1–3; this class handles 4–8):
+ *  1. Guest selects desired room.
+ *  2. System requests guest info (name, address, card, stay dates).
+ *  3. Guest enters details.
+ *  4. {@link #buildPreview} validates card, address, and availability.
+ *  5. {@link ReservationSummary} holds stay cost and summary text.
+ *  6. Guest approves via {@code confirmAndSave(summary, true)}.
+ *  7–8. System saves reservation and returns confirmation number.
+ */
+
+package UseCases;
+
+import People.Guest;
+import People.UserSession;
+import Reservations.Reservation;
+import Reservations.ReservationSummary;
+import RoomCatalog.RoomCatalog;
+import Rooms.Room;
+import Rooms.RoomType;
+import UI.ReserveRoomUI;
+import Utility.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import javax.swing.*;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+public class ReserveRoom {
+    public static void testWithoutUI1() {
+        UserSession userSession = new UserSession();
+        userSession.login(new Guest("username", "pw", "Tim", "311", "tim@gmail.com"));
+
+        RoomCatalog roomCatalog = new RoomCatalog();
+        Room room = new Room(
+                101,
+                false,
+                true,
+                120.00,
+                new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
+        );
+        roomCatalog.addRoom(room);
+
+        RoomService roomService = new RoomService(roomCatalog);
+
+        ReservationService reservationService = new ReservationService();
+        ReservationController ResC = new ReservationController(roomService, reservationService, userSession);
+        DateRange range = new DateRange(3, 25, 2026, 3, 28, 2026);
+
+        ReservationSummary preview = ResC.reserveRoom(
+                101,
+                "John Doe",
+                "123 Main Street",
+                "4111111111111111",
+                range
+        );
+
+        assertTrue(preview.getRoom().equals(room), "Preview should use the selected room.");
+        assertTrue(preview.getNumberOfNights() == 3, "Preview should calculate number of nights.");
+        assertTrue(preview.getTotalCost() == 360.00, "Preview total cost should be 3 * 120.00.");
+        assertTrue("**** **** **** 1111".equals(preview.getMaskedCardNumber()), "Preview should mask card.");
+
+        String confirmationNumber = ResC.confirmAndSaveReservation(preview, true);
+        assertTrue(confirmationNumber.startsWith("CONF-"), "Confirmation number should be generated.");
+
+        List<Reservation> reservations = reservationService.getReservations();
+        assertTrue(reservations.size() == 1, "Reservation should be saved exactly once.");
+
+        Reservation saved = reservations.get(0);
+        assertTrue(saved.getRoom().equals(room), "Saved reservation should reference correct room.");
+        assertTrue(saved.getDateRange().overlaps(range), "Saved reservation should store correct date range.");
+        assertTrue("John Doe".equals(saved.getGuestName()), "Saved reservation should store guest name.");
+
+        System.out.println("ReserveRoom happy-path test passed.");
+    }
+
+    public static void testWithUI1() {
+        UserSession userSession = new UserSession();
+        userSession.login(new Guest("username", "pw", "Tim", "311", "tim@gmail.com"));
+
+        RoomCatalog roomCatalog = new RoomCatalog();
+        // Add a couple sample rooms so the UI dropdown isn't empty.
+        roomCatalog.addRoom(new Room(
+                101,
+                false,
+                true,
+                120.00,
+                new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
+        ));
+        roomCatalog.addRoom(new Room(
+                102,
+                false,
+                true,
+                150.00,
+                new RoomType(RoomType.FloorType.URBAN, RoomType.BedType.DOUBLE)
+        ));
+
+        ReservationService reservationService = new ReservationService();
+        RoomService roomService = new RoomService(roomCatalog);
+        ReservationController ResC = new ReservationController(roomService, reservationService, userSession);
+
+        ReserveRoomUI ui = new ReserveRoomUI(userSession, ResC);
+
+        JFrame frame = new JFrame("Hotel - Reserve Room");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setContentPane(ui);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+}
+
