@@ -9,6 +9,8 @@
 
 package People;
 
+import java.util.Objects;
+
 /**
  * A hotel administrator. Has full system privileges — can add rooms,
  * manage staff, and oversee reservations — but cannot make a guest reservation
@@ -27,5 +29,17 @@ public class Admin extends User {
     @Override
     public String toString() {
         return "Admin[" + employeeId + " | " + getUsername() + " | " + getName() + "]";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Admin)) return false;
+        Admin a = (Admin) o;
+        return this.username.equals(a.username) || this.employeeId == a.employeeId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(username, employeeId);
     }
 }

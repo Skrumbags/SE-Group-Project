@@ -1,13 +1,14 @@
 package UI;
 import People.UserCatalog;
 import UseCases.AddUser;
+import Utility.UserController;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class AddUserUI extends JPanel {
 
-    private final AddUser addUserUseCase;
+    private final UserController userController;
 
     private final JTextField usernameField  = new JTextField(15);
     private final JPasswordField passwordField = new JPasswordField(15);
@@ -16,7 +17,7 @@ public class AddUserUI extends JPanel {
     private final JTextField emailField     = new JTextField(15);
 
     public AddUserUI(UserCatalog catalog) {
-        this.addUserUseCase = new AddUser(catalog);
+        this.userController = new UserController(catalog);
         setLayout(new GridLayout(6, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -40,12 +41,12 @@ public class AddUserUI extends JPanel {
         String phone    = phoneField.getText().trim();
         String email    = emailField.getText().trim();
 
-        AddUser.Result result = addUserUseCase.execute(username, password, name, phone, email);
+        UserController.Result result = userController.addGuest(username, password, name, phone, email);
 
         switch (result) {
             case SUCCESS ->
                     JOptionPane.showMessageDialog(this,
-                            "User \"" + username + "\" registered successfully!");
+                            "Guest \"" + username + "\" registered successfully!");
             case DUPLICATE_USERNAME ->
                     JOptionPane.showMessageDialog(this,
                             "Username \"" + username + "\" is already taken. Please choose another.",

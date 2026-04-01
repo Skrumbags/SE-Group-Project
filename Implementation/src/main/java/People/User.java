@@ -15,9 +15,9 @@ package People;
  */
 public abstract class User {
 
-    private final String username;
-    private final String password;
-    private String name;
+    protected final String username;
+    protected final String password;
+    protected String name;
 
     public User(String username, String password, String name) {
         if (username == null || username.isBlank())
