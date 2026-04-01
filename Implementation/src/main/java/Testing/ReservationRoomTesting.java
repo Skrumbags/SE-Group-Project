@@ -47,6 +47,7 @@ public class ReservationRoomTesting {
         userSession.login(new Guest("guest1", "pass", "John Doe", "555-0100", "john@example.com"));
 
         RoomCatalog roomCatalog = new RoomCatalog();
+        RoomService roomService = new RoomService(roomCatalog, TEST_DB);
         Room room = new Room(
                 101,
                 false,
@@ -54,7 +55,7 @@ public class ReservationRoomTesting {
                 120.00,
                 new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
         );
-        roomCatalog.addRoom(room);
+        assertTrue(roomService.addRoom(room), "Test room should be inserted into DB-backed catalog.");
 
         ReservationService reservationService = new ReservationService(TEST_DB);
         ReserveRoom reserveRoom = new ReserveRoom(userSession, roomCatalog, reservationService);
@@ -92,23 +93,26 @@ public class ReservationRoomTesting {
         userSession.login(new Guest("guest1", "pass", "John Doe", "555-0100", "john@example.com"));
 
         RoomCatalog roomCatalog = new RoomCatalog();
-        roomCatalog.addRoom(new Room(
-                101,
-                false,
-                true,
-                120.00,
-                new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
-        ));
-        roomCatalog.addRoom(new Room(
-                102,
-                false,
-                true,
-                150.00,
-                new RoomType(RoomType.FloorType.URBAN, RoomType.BedType.DOUBLE)
-        ));
+        Path db = Path.of("data", "database.db");
+        RoomService roomService = new RoomService(roomCatalog, db);
+        if (roomService.getRooms().isEmpty()) {
+            roomService.addRoom(new Room(
+                    101,
+                    false,
+                    true,
+                    120.00,
+                    new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
+            ));
+            roomService.addRoom(new Room(
+                    102,
+                    false,
+                    true,
+                    150.00,
+                    new RoomType(RoomType.FloorType.URBAN, RoomType.BedType.DOUBLE)
+            ));
+        }
 
-        ReservationService reservationService = new ReservationService(Path.of("data", "database.db"));
-        RoomService roomService = new RoomService(roomCatalog);
+        ReservationService reservationService = new ReservationService(db);
         ReservationController reservationController =
                 new ReservationController(roomService, reservationService, userSession);
 
