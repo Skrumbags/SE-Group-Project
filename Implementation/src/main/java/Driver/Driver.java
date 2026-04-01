@@ -9,10 +9,16 @@
 package Driver;
 
 // Imports for Room + RoomType
+import People.Guest;
 import People.UserCatalog;
+import People.UserSession;
 import RoomCatalog.RoomCatalog;
 import UI.AddRoomUI;
 import UI.AddUserUI;
+import UI.ReserveRoomUI;
+import Utility.ReservationController;
+import Utility.ReservationService;
+import Utility.RoomService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -27,6 +33,11 @@ public class Driver {
         // Shared application state — one instance each, passed by reference
         RoomCatalog roomCatalog = new RoomCatalog();
         UserCatalog userCatalog = new UserCatalog();
+        ReservationService resService = new ReservationService();
+        RoomService roomService = new RoomService(roomCatalog);
+        UserSession userSession = new UserSession();
+        userSession.login(new Guest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu"));
+        ReservationController ResC = new ReservationController(roomService, resService, userSession);
 
         JFrame frame = new JFrame("Hotel Reservation App");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,12 +52,12 @@ public class Driver {
         JPanel welcomePanel    = buildWelcomePanel(cards, root);
         AddUserUI addUserPanel = new AddUserUI(userCatalog);
         AddRoomUI addRoomPanel = new AddRoomUI(roomCatalog);
-        // ReserveRoomUI reservePanel = new ReserveRoomUI(roomCatalog, userCatalog);
+        ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, ResC);
 
         root.add(welcomePanel, "WELCOME");
         root.add(addUserPanel, "ADD_USER");
         root.add(addRoomPanel, "ADD_ROOM");
-        // root.add(reservePanel, "RESERVE");
+        root.add(reservePanel, "RESERVE");
 
         frame.add(root);
         cards.show(root, "WELCOME");
@@ -66,9 +77,9 @@ public class Driver {
         // ── Navigation buttons ───────────────────────────────────────────────
         JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 0, 15));
 
-        JButton toAddUser   = new JButton("Add a User");
-        JButton toReserve   = new JButton("Reserve a Room");
-        JButton toAddRoom   = new JButton("Add a Room");
+        JButton toAddUser  = new JButton("Add a User");
+        JButton toReserve  = new JButton("Reserve a Room");
+        JButton toAddRoom  = new JButton("Add a Room");
 
         styleNavButton(toAddUser);
         styleNavButton(toReserve);
