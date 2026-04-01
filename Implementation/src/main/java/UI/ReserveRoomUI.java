@@ -8,6 +8,7 @@ import Utility.ReservationController;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.time.LocalDate;
@@ -32,6 +33,7 @@ public class ReserveRoomUI extends JPanel {
     private final JTextField creditCardField = new JTextField(16);
     private final JTextField checkInDateField = new JTextField(10);
     private final JTextField checkOutDateField = new JTextField(10);
+    private final JButton backButton = new JButton();
 
     private ReservationSummary currentPreview;
 
@@ -72,6 +74,9 @@ public class ReserveRoomUI extends JPanel {
 
         previewButton.addActionListener(e -> handlePreview());
         confirmButton.addActionListener(e -> handleConfirm());
+
+        add(backButton);
+        backButton.setVisible(false);
     }
 
     private void refreshRoomOptions() {
@@ -166,6 +171,12 @@ public class ReserveRoomUI extends JPanel {
                 }
             }
         });
+    }
+
+    public void setBackAction(ActionListener goBack, String backMessage) {
+        backButton.addActionListener(goBack);
+        backButton.setLabel(backMessage);
+        backButton.setVisible(true);
     }
 }
 

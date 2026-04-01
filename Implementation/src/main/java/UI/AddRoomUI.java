@@ -9,6 +9,7 @@ import Utility.RoomService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 
 public class AddRoomUI extends JPanel {
 
@@ -19,10 +20,11 @@ public class AddRoomUI extends JPanel {
     private JComboBox<FloorType> floorTypeBox = new JComboBox<>(FloorType.values());
     private JComboBox<BedType> bedTypeBox = new JComboBox<>(BedType.values());
     private JCheckBox smokingCheck = new JCheckBox();
+    private JButton backButton = new JButton();
 
     public AddRoomUI(RoomService roomService) {
         this.roomService = roomService;
-        setLayout(new GridLayout(6, 2, 5, 5));
+        setLayout(new GridLayout(7, 2, 5, 5));
 
         add(new JLabel("Room Number:"));  add(roomNumberField);
         add(new JLabel("Floor Type:"));   add(floorTypeBox);
@@ -31,7 +33,8 @@ public class AddRoomUI extends JPanel {
         add(new JLabel("Daily Rate:"));   add(dailyRateField);
 
         JButton addButton = new JButton("Add Room");
-        add(new JLabel()); // spacer
+        add(backButton);
+        backButton.setVisible(false);
         add(addButton);
 
         addButton.addActionListener(e -> handleAddRoom());
@@ -57,5 +60,11 @@ public class AddRoomUI extends JPanel {
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter valid numbers.");
         }
+    }
+
+    public void setBackAction(ActionListener goBack, String backMessage) {
+        backButton.addActionListener(goBack);
+        backButton.setLabel(backMessage);
+        backButton.setVisible(true);
     }
 }

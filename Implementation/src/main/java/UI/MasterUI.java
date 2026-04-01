@@ -9,6 +9,7 @@ import Utility.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 
 public class MasterUI {
     private final UserSession userSession;
@@ -40,6 +41,13 @@ public class MasterUI {
         AddUserUI addUserPanel = new AddUserUI(userController);
         AddRoomUI addRoomPanel = new AddRoomUI(searchController.getRoomService());
         ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, reservationController);
+
+        // Back Button
+        ActionListener goBack = e -> cards.show(root, "WELCOME");
+        String backMessage = "← Back to Welcome";
+        addUserPanel.setBackAction(goBack, backMessage);
+        addRoomPanel.setBackAction(goBack, backMessage);
+        reservePanel.setBackAction(goBack, backMessage);
 
         root.add(welcomePanel, "WELCOME");
         root.add(addUserPanel, "ADD_USER");
@@ -81,13 +89,6 @@ public class MasterUI {
         buttonPanel.add(toAddRoom);
 
         panel.add(buttonPanel, BorderLayout.CENTER);
-
-        // ── Back button (invisible on welcome, shown on sub-panels via shared bar) ──
-        // Each sub-panel can add its own back button, or you can add one globally:
-        JButton backButton = new JButton("← Back to Welcome");
-        backButton.addActionListener(e -> cards.show(root, "WELCOME"));
-        panel.add(backButton, BorderLayout.SOUTH);
-        backButton.setVisible(false); // not needed on the welcome screen itself
 
         return panel;
     }
