@@ -8,9 +8,9 @@
  *
  *  Flow (UI collects steps 1–3; this class handles 4–8):
  *  1. Guest selects desired room.
- *  2. System requests guest info (name, address, card, stay dates).
+ *  2. System requests guest info (name, card, stay dates).
  *  3. Guest enters details.
- *  4. {@link #buildPreview} validates card, address, and availability.
+ *  4. {@link #buildPreview} validates card and availability.
  *  5. {@link ReservationSummary} holds stay cost and summary text.
  *  6. Guest approves via {@code confirmAndSave(summary, true)}.
  *  7–8. System saves reservation and returns confirmation number.
@@ -46,15 +46,11 @@ public class ReserveRoom {
      * @throws IllegalStateException if the guest is not logged in or the room cannot be booked
      * @throws IllegalArgumentException if validation fails
      */
-    public ReservationSummary buildPreview(int roomNumber, String guestName, String guestAddress,
+    public ReservationSummary buildPreview(int roomNumber, String guestName,
                                            String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInGuest();
 
         String err = BookingValidation.validateGuestName(guestName);
-        if (err != null) {
-            throw new IllegalArgumentException(err);
-        }
-        err = BookingValidation.validateAddress(guestAddress);
         if (err != null) {
             throw new IllegalArgumentException(err);
         }
@@ -78,7 +74,7 @@ public class ReserveRoom {
         double totalCost = nights * room.getMaxDailyRate();
         String masked = BookingValidation.maskCardNumber(creditCardNumber);
 
-        return new ReservationSummary(room, dateRange, guestName, guestAddress, masked, totalCost, (int) nights);
+        return new ReservationSummary(room, dateRange, guestName, masked, totalCost, (int) nights);
     }
 
     /**
@@ -104,7 +100,6 @@ public class ReserveRoom {
                 room,
                 range,
                 summary.getGuestName(),
-                summary.getGuestAddress(),
                 summary.getMaskedCardNumber(),
                 summary.getTotalCost()
         );

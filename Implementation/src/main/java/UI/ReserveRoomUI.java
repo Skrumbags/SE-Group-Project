@@ -31,7 +31,6 @@ public class ReserveRoomUI extends JPanel {
 
     private final JComboBox<Integer> roomNumberCombo;
     private final JTextField guestNameField = new JTextField(15);
-    private final JTextField guestAddressField = new JTextField(20);
     private final JTextField creditCardField = new JTextField(16);
     private final JTextField checkInDateField = new JTextField(10);
     private final JTextField checkOutDateField = new JTextField(10);
@@ -42,7 +41,7 @@ public class ReserveRoomUI extends JPanel {
         this.roomCatalog = roomCatalog;
         this.reserveRoomUseCase = new ReserveRoom(userSession, roomCatalog, reservationService);
 
-        setLayout(new GridLayout(9, 2, 5, 5));
+        setLayout(new GridLayout(8, 2, 5, 5));
 
         // Step 1: select desired room
         roomNumberCombo = new JComboBox<>();
@@ -54,9 +53,6 @@ public class ReserveRoomUI extends JPanel {
         // Step 2: request guest info + dates
         add(new JLabel("Guest Name:"));
         add(guestNameField);
-
-        add(new JLabel("Address:"));
-        add(guestAddressField);
 
         add(new JLabel("Credit Card #:"));
         add(creditCardField);
@@ -91,7 +87,6 @@ public class ReserveRoomUI extends JPanel {
         try {
             int roomNumber = (Integer) roomNumberCombo.getSelectedItem();
             String guestName = guestNameField.getText();
-            String guestAddress = guestAddressField.getText();
             String creditCard = creditCardField.getText();
 
             String checkInRaw = dateFieldText(checkInDateField);
@@ -108,7 +103,6 @@ public class ReserveRoomUI extends JPanel {
             currentPreview = reserveRoomUseCase.buildPreview(
                     roomNumber,
                     guestName,
-                    guestAddress,
                     creditCard,
                     dateRange
             );

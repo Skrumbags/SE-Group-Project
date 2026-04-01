@@ -29,7 +29,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>Testing.ReservationRoomTesting</mainClass>
+                    <!--<mainClass>Testing.ReservationRoomTesting</mainClass>-->
+                    <mainClass>Driver.Driver</mainClass>
                 </configuration>
             </plugin>
         </plugins>

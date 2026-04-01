@@ -1,6 +1,9 @@
 package Persistence;
 
 import Reservations.Reservation;
+import Rooms.Room;
+import Rooms.RoomType;
+import Utility.DateRange;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +18,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Minimal SQLite persistence for reservations (used by {@link Utility.ReservationService}).
@@ -77,6 +83,97 @@ public class SqliteReservationPersistence {
             }
         }
         return 10_000L;
+    }
+
+    /**
+     * True if any row for {@code roomNumber} overlaps {@code candidate} using the same rule as
+     * {@link DateRange#overlaps(DateRange)}.
+     */
+    public boolean existsOverlap(int roomNumber, DateRange candidate) throws SQLException {
+        LocalDate cIn = candidate.getCheckInDate();
+        LocalDate cOut = candidate.getCheckOutDate();
+        String sql = """
+                SELECT 1 FROM Reservations
+                WHERE room_number = ?
+                  AND check_in_date < ?
+                  AND check_out_date > ?
+                LIMIT 1
+                """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
+            ps.setString(2, cOut.toString());
+            ps.setString(3, cIn.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /** Load all reservations (rooms are placeholders; {@link Room#equals} uses room number only). */
+    public List<Reservation> findAll() throws SQLException {
+        String sql = """
+                SELECT confirmation_number, room_number, check_in_date, check_out_date,
+                       guest_name, masked_card_number, total_cost
+                FROM Reservations
+                ORDER BY id
+                """;
+        List<Reservation> list = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(mapReservationRow(rs));
+            }
+        }
+        return list;
+    }
+
+    /** Load one reservation by confirmation number, if present. */
+    public Optional<Reservation> findByConfirmationNumber(String confirmationNumber) throws SQLException {
+        String sql = """
+                SELECT confirmation_number, room_number, check_in_date, check_out_date,
+                       guest_name, masked_card_number, total_cost
+                FROM Reservations
+                WHERE confirmation_number = ?
+                """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, confirmationNumber);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapReservationRow(rs));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Reservation mapReservationRow(ResultSet rs) throws SQLException {
+        String conf = rs.getString("confirmation_number");
+        int roomNum = rs.getInt("room_number");
+        LocalDate in = LocalDate.parse(rs.getString("check_in_date"));
+        LocalDate out = LocalDate.parse(rs.getString("check_out_date"));
+        DateRange range = new DateRange(in, out);
+        Room room = placeholderRoom(roomNum);
+        return new Reservation(
+                conf,
+                room,
+                range,
+                rs.getString("guest_name"),
+                rs.getString("masked_card_number"),
+                rs.getDouble("total_cost")
+        );
+    }
+
+    private static Room placeholderRoom(int roomNumber) {
+        return new Room(
+                roomNumber,
+                false,
+                true,
+                0.0,
+                new RoomType(RoomType.FloorType.NATURAL, RoomType.BedType.SINGLE)
+        );
     }
 
     public void save(Reservation r) throws SQLException {

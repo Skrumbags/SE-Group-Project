@@ -30,15 +30,17 @@ public class ReservationService {
     }
 
     /**
-     * In-memory behavior plus persisting each confirmed reservation to the given SQLite file.
+     * In-memory list plus SQLite: loads existing rows at startup, persists new ones,
+     * and uses SQL for overlap checks so restarts stay consistent with the file.
      */
     public ReservationService(Path sqliteDatabaseFile) {
         this.sqlite = new SqliteReservationPersistence(sqliteDatabaseFile);
         this.sqlite.initialize();
         try {
             this.confirmationSeq = new AtomicLong(this.sqlite.nextConfirmationCounterStart());
+            this.reservationList.addAll(this.sqlite.findAll());
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to read confirmation sequence from database", e);
+            throw new RuntimeException("Failed to load reservations from database", e);
         }
     }
 
@@ -49,6 +51,13 @@ public class ReservationService {
     }
 
     public boolean isReserved(Room room, DateRange dateRange) {
+        if (sqlite != null) {
+            try {
+                return sqlite.existsOverlap(room.getRoomNumber(), dateRange);
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to check reservation overlap", e);
+            }
+        }
         for (Reservation res : reservationList) {
             if (room.equals(res.getRoom()) && dateRange.overlaps(res.getDateRange())) {
                 return true;

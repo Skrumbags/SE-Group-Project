@@ -4,10 +4,11 @@
  *  Date Last Modified: 3/25/2026
  *  Authors: XXX, XXX
  *  File Description:
- *      XXXX
+ *      Integration test for Reserve Room against a dedicated SQLite file (not the dev database).
  */
 package Testing;
 
+import Persistence.SqliteReservationPersistence;
 import People.Guest;
 import People.UserSession;
 import Reservations.Reservation;
@@ -21,16 +22,25 @@ import Utility.DateRange;
 import Utility.ReservationService;
 
 import javax.swing.JFrame;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.sql.SQLException;
 
 public class ReservationRoomTesting {
-    public static void main(String[] args) {
+
+    /** Isolated DB so the test does not depend on leftover rows in {@code database.db}. */
+    private static final Path TEST_DB = Path.of("data", "reservation_test.db");
+
+    public static void main(String[] args) throws Exception {
         testReserveRoomHappyPath();
         launchReserveRoomUI();
     }
 
-    private static void testReserveRoomHappyPath() {
+    private static void testReserveRoomHappyPath() throws IOException, SQLException {
+        Files.createDirectories(TEST_DB.getParent());
+        Files.deleteIfExists(TEST_DB);
+
         UserSession userSession = new UserSession();
         userSession.login(new Guest("guest1", "pass", "John Doe", "555-0100", "john@example.com"));
 
@@ -44,14 +54,13 @@ public class ReservationRoomTesting {
         );
         roomCatalog.addRoom(room);
 
-        ReservationService reservationService = new ReservationService(Path.of("data", "database.db"));
+        ReservationService reservationService = new ReservationService(TEST_DB);
         ReserveRoom reserveRoom = new ReserveRoom(userSession, roomCatalog, reservationService);
         DateRange range = new DateRange(3, 25, 2026, 3, 28, 2026);
 
         ReservationSummary preview = reserveRoom.buildPreview(
                 101,
                 "John Doe",
-                "123 Main Street",
                 "4111111111111111",
                 range
         );
@@ -64,15 +73,16 @@ public class ReservationRoomTesting {
         String confirmationNumber = reserveRoom.confirmAndSave(preview, true);
         assertTrue(confirmationNumber.startsWith("CONF-"), "Confirmation number should be generated.");
 
-        List<Reservation> reservations = reservationService.getReservations();
-        assertTrue(reservations.size() == 1, "Reservation should be saved exactly once.");
+        SqliteReservationPersistence verifyDb = new SqliteReservationPersistence(TEST_DB);
+        Reservation fromDb = verifyDb.findByConfirmationNumber(confirmationNumber)
+                .orElseThrow(() -> new AssertionError("Reservation row should exist in SQLite."));
 
-        Reservation saved = reservations.get(0);
-        assertTrue(saved.getRoom().equals(room), "Saved reservation should reference correct room.");
-        assertTrue(saved.getDateRange().overlaps(range), "Saved reservation should store correct date range.");
-        assertTrue("John Doe".equals(saved.getGuestName()), "Saved reservation should store guest name.");
+        assertTrue(fromDb.getRoom().equals(room), "DB row should match room number.");
+        assertTrue(fromDb.getDateRange().overlaps(range), "DB row should store overlapping date range.");
+        assertTrue("John Doe".equals(fromDb.getGuestName()), "DB row should store guest name.");
+        assertTrue(Math.abs(fromDb.getTotalCost() - 360.00) < 0.001, "DB row should store total cost.");
 
-        System.out.println("ReserveRoom happy-path test passed.");
+        System.out.println("ReserveRoom happy-path test passed (verified in " + TEST_DB + ").");
     }
 
     private static void launchReserveRoomUI() {
@@ -80,7 +90,6 @@ public class ReservationRoomTesting {
         userSession.login(new Guest("guest1", "pass", "John Doe", "555-0100", "john@example.com"));
 
         RoomCatalog roomCatalog = new RoomCatalog();
-        // Add a couple sample rooms so the UI dropdown isn't empty.
         roomCatalog.addRoom(new Room(
                 101,
                 false,
