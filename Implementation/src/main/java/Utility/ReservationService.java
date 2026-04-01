@@ -4,17 +4,22 @@
  *  Date Last Modified: 3/25/2026
  *  Authors: Matt Freeman, XXX
  *  File Description:
- *      Tracks reservations and answers availability queries for date ranges.
+ *      Tracks reservations, answers availability, and performs the reserve-room flow
+ *      ({@link #buildPreview}, {@link #confirmAndSave}) used by the UI.
  */
 
 package Utility;
 
+import People.UserSession;
 import Persistence.SqliteReservationPersistence;
 import Reservations.Reservation;
+import Reservations.ReservationSummary;
+import RoomCatalog.RoomCatalog;
 import Rooms.Room;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -83,5 +88,73 @@ public class ReservationService {
 
     public List<Reservation> getReservations() {
         return List.copyOf(reservationList);
+    }
+
+    /**
+     * Validates guest session, guest data, payment, and room availability; computes total stay cost.
+     *
+     * @throws IllegalStateException if the guest is not logged in or the room cannot be booked
+     * @throws IllegalArgumentException if validation fails
+     */
+    public ReservationSummary buildPreview(UserSession userSession, RoomCatalog roomCatalog,
+                                           int roomNumber, String guestName,
+                                           String creditCardNumber, DateRange dateRange) {
+        userSession.requireLoggedInGuest();
+
+        String err = BookingValidation.validateGuestName(guestName);
+        if (err != null) {
+            throw new IllegalArgumentException(err);
+        }
+        err = BookingValidation.validateCreditCard(creditCardNumber);
+        if (err != null) {
+            throw new IllegalArgumentException(err);
+        }
+
+        Room room = roomCatalog.findRoom(roomNumber);
+        if (room == null) {
+            throw new IllegalArgumentException("No room found with number " + roomNumber + ".");
+        }
+        if (!room.isAvailability()) {
+            throw new IllegalStateException("Selected room is not available for booking.");
+        }
+        if (isReserved(room, dateRange)) {
+            throw new IllegalStateException("Room is already reserved for overlapping dates.");
+        }
+
+        long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
+        double totalCost = nights * room.getMaxDailyRate();
+        String masked = BookingValidation.maskCardNumber(creditCardNumber);
+
+        return new ReservationSummary(room, dateRange, guestName, masked, totalCost, (int) nights);
+    }
+
+    /**
+     * Persists the reservation after the guest approves the summary. Re-checks availability first.
+     *
+     * @return confirmation number for display
+     */
+    public String confirmAndSave(UserSession userSession, ReservationSummary summary, boolean guestApproved) {
+        userSession.requireLoggedInGuest();
+        if (!guestApproved) {
+            throw new IllegalArgumentException("Reservation requires guest approval of cost and details.");
+        }
+
+        Room room = summary.getRoom();
+        DateRange range = summary.getDateRange();
+        if (isReserved(room, range)) {
+            throw new IllegalStateException("Room is no longer available for those dates.");
+        }
+
+        String confirmationNumber = nextConfirmationNumber();
+        Reservation reservation = new Reservation(
+                confirmationNumber,
+                room,
+                range,
+                summary.getGuestName(),
+                summary.getMaskedCardNumber(),
+                summary.getTotalCost()
+        );
+        addReservation(reservation);
+        return confirmationNumber;
     }
 }

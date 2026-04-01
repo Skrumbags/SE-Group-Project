@@ -2,12 +2,9 @@ package UI;
 
 import People.UserSession;
 import Reservations.ReservationSummary;
-import RoomCatalog.RoomCatalog;
 import Rooms.Room;
-import UseCases.ReserveRoom;
 import Utility.DateRange;
 import Utility.ReservationController;
-import Utility.ReservationService;
 
 import javax.swing.*;
 import java.awt.*;

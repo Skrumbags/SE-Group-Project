@@ -108,8 +108,11 @@ public class ReservationRoomTesting {
         ));
 
         ReservationService reservationService = new ReservationService(Path.of("data", "database.db"));
+        RoomService roomService = new RoomService(roomCatalog);
+        ReservationController reservationController =
+                new ReservationController(roomService, reservationService, userSession);
 
-        ReserveRoomUI ui = new ReserveRoomUI(userSession, roomCatalog, reservationService);
+        ReserveRoomUI ui = new ReserveRoomUI(userSession, reservationController);
 
         JFrame frame = new JFrame("Hotel - Reserve Room");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
