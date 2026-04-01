@@ -5,6 +5,7 @@ import Utility.UserController;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 
 public class AddUserUI extends JPanel {
 
@@ -15,6 +16,7 @@ public class AddUserUI extends JPanel {
     private final JTextField nameField      = new JTextField(15);
     private final JTextField phoneField     = new JTextField(15);
     private final JTextField emailField     = new JTextField(15);
+    private JButton backButton = new JButton();
 
     public AddUserUI(UserController userController) {
         this.userController = userController;
@@ -28,7 +30,8 @@ public class AddUserUI extends JPanel {
         add(new JLabel("Email:"));     add(emailField);
 
         JButton registerButton = new JButton("Register User");
-        add(new JLabel()); // spacer
+        add(backButton);
+        backButton.setVisible(false);
         add(registerButton);
 
         registerButton.addActionListener(e -> handleAddUser());
@@ -56,5 +59,11 @@ public class AddUserUI extends JPanel {
                             "Username, password, and full name are required.",
                             "Invalid Input", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public void setBackAction(ActionListener goBack, String backMessage) {
+        backButton.addActionListener(goBack);
+        backButton.setLabel("← Back to Welcome");
+        backButton.setVisible(true);
     }
 }
