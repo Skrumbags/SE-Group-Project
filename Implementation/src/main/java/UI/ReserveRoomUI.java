@@ -10,6 +10,8 @@ import Utility.ReservationService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -22,6 +24,8 @@ import java.time.format.DateTimeParseException;
  */
 public class ReserveRoomUI extends JPanel {
 
+    private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
+
     private final ReserveRoom reserveRoomUseCase;
     private final RoomCatalog roomCatalog;
 
@@ -29,8 +33,8 @@ public class ReserveRoomUI extends JPanel {
     private final JTextField guestNameField = new JTextField(15);
     private final JTextField guestAddressField = new JTextField(20);
     private final JTextField creditCardField = new JTextField(16);
-    private final JTextField checkInDateField = new JTextField("YYYY-MM-DD", 10);
-    private final JTextField checkOutDateField = new JTextField("YYYY-MM-DD", 10);
+    private final JTextField checkInDateField = new JTextField(10);
+    private final JTextField checkOutDateField = new JTextField(10);
 
     private ReservationSummary currentPreview;
 
@@ -63,6 +67,9 @@ public class ReserveRoomUI extends JPanel {
         add(new JLabel("Check-out (YYYY-MM-DD):"));
         add(checkOutDateField);
 
+        installDatePlaceholder(checkInDateField);
+        installDatePlaceholder(checkOutDateField);
+
         // Step 5-6: show summary then confirm
         JButton previewButton = new JButton("Calculate Cost");
         JButton confirmButton = new JButton("Confirm Reservation");
@@ -87,8 +94,14 @@ public class ReserveRoomUI extends JPanel {
             String guestAddress = guestAddressField.getText();
             String creditCard = creditCardField.getText();
 
-            LocalDate checkIn = parseDate(checkInDateField.getText().trim());
-            LocalDate checkOut = parseDate(checkOutDateField.getText().trim());
+            String checkInRaw = dateFieldText(checkInDateField);
+            String checkOutRaw = dateFieldText(checkOutDateField);
+            if (checkInRaw.isEmpty() || checkOutRaw.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter check-in and check-out dates.", "Missing Dates", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            LocalDate checkIn = parseDate(checkInRaw);
+            LocalDate checkOut = parseDate(checkOutRaw);
             DateRange dateRange = new DateRange(checkIn, checkOut);
 
             // Steps 4-5: validate and compute preview summary
@@ -126,6 +139,41 @@ public class ReserveRoomUI extends JPanel {
 
     private LocalDate parseDate(String text) {
         return LocalDate.parse(text);
+    }
+
+    /** Returns trimmed text, or empty if the field still shows the placeholder. */
+    private static String dateFieldText(JTextField field) {
+        String t = field.getText().trim();
+        if (t.isEmpty() || DATE_PLACEHOLDER.equals(t)) {
+            return "";
+        }
+        return t;
+    }
+
+    private static void installDatePlaceholder(JTextField field) {
+        Color normalFg = UIManager.getColor("TextField.foreground");
+        Color inactiveFg = UIManager.getColor("TextField.inactiveForeground");
+        final Color hintColor = inactiveFg != null ? inactiveFg : Color.GRAY;
+        final Color normalColor = normalFg != null ? normalFg : Color.BLACK;
+        field.setText(DATE_PLACEHOLDER);
+        field.setForeground(hintColor);
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (DATE_PLACEHOLDER.equals(field.getText())) {
+                    field.setText("");
+                    field.setForeground(normalColor);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (field.getText().isEmpty()) {
+                    field.setText(DATE_PLACEHOLDER);
+                    field.setForeground(hintColor);
+                }
+            }
+        });
     }
 }
 
