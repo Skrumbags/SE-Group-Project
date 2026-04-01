@@ -13,10 +13,7 @@ import People.Guest;
 import People.UserCatalog;
 import People.UserSession;
 import RoomCatalog.RoomCatalog;
-import UI.AddRoomUI;
-import UI.AddUserUI;
 import UI.MasterUI;
-import UI.ReserveRoomUI;
 import Utility.*;
 
 import javax.swing.*;
@@ -31,10 +28,13 @@ public class Driver {
         UserCatalog userCatalog = new UserCatalog();
         RoomService roomService = new RoomService(roomCatalog, db);
         ReservationService resService = new ReservationService(db);
+        UserController userController = new UserController(userCatalog, db);
+
         UserSession userSession = new UserSession();
-        userSession.login(new Guest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu"));
-        userCatalog.addUser(userSession.getCurrentUser());
-        UserController userController = new UserController(userCatalog);
+        if (userCatalog.findByUsername("Matt") == null) {
+            userController.addGuest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu");
+        }
+        userSession.login((Guest) userCatalog.findByUsername("Matt"));
         SearchController searchController = new SearchController(roomService, resService);
         ReservationController reservationController = new ReservationController(roomService, resService, userSession);
 

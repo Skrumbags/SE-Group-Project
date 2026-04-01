@@ -19,6 +19,9 @@ public abstract class User {
     protected final String password;
     protected String name;
 
+    /** SQLite row id when this user was loaded from or saved to the database; null if not persisted. */
+    private Long databaseId;
+
     public User(String username, String password, String name) {
         if (username == null || username.isBlank())
             throw new IllegalArgumentException("Username cannot be blank.");
@@ -34,6 +37,14 @@ public abstract class User {
 
     public String getUsername() { return username; }
     public String getName()     { return name;     }
+
+    public Long getDatabaseId() {
+        return databaseId;
+    }
+
+    public void setDatabaseId(Long databaseId) {
+        this.databaseId = databaseId;
+    }
 
     /** Validates a login attempt without ever exposing the raw password. */
     public boolean checkPassword(String candidate) {

@@ -20,7 +20,14 @@ public final class SchemaInstaller {
             if (in == null) {
                 throw new IOException("schema.sql not found on classpath");
             }
-            String sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            String raw = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            // Strip line comments so semicolons inside "-- ..." cannot break split(";").
+            StringBuilder sb = new StringBuilder();
+            for (String line : raw.split("\\R")) {
+                int dash = line.indexOf("--");
+                sb.append(dash >= 0 ? line.substring(0, dash) : line).append('\n');
+            }
+            String sql = sb.toString();
             try (Statement st = conn.createStatement()) {
                 for (String part : sql.split(";")) {
                     String stmt = part.trim();

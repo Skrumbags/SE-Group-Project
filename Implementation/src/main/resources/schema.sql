@@ -1,7 +1,13 @@
--- Parent table first (Reservations.guest_id may reference Users)
+-- Registered users (guests, staff). Surrogate PK id, username unique for login.
 CREATE TABLE IF NOT EXISTS Users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    role TEXT NOT NULL,
+    employee_id INTEGER
 );
 
 -- Hotel rooms (used by Add Room UI and reservation room_number)
@@ -22,7 +28,7 @@ CREATE TABLE IF NOT EXISTS Reservations (
     check_out_date TEXT NOT NULL,
     total_guests INTEGER NOT NULL,
     created_date TEXT NOT NULL,
-    guest_id TEXT REFERENCES Users(id),
+    guest_id INTEGER REFERENCES Users(id),
     guest_name TEXT NOT NULL,
     masked_card_number TEXT NOT NULL,
     total_cost REAL NOT NULL

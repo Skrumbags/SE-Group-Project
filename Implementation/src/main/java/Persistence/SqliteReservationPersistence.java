@@ -94,7 +94,7 @@ public class SqliteReservationPersistence {
     public List<Reservation> findAll() throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_name, masked_card_number, total_cost
+                       guest_id, guest_name, masked_card_number, total_cost
                 FROM Reservations
                 ORDER BY id
                 """;
@@ -113,7 +113,7 @@ public class SqliteReservationPersistence {
     public Optional<Reservation> findByConfirmationNumber(String confirmationNumber) throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_name, masked_card_number, total_cost
+                       guest_id, guest_name, masked_card_number, total_cost
                 FROM Reservations
                 WHERE confirmation_number = ?
                 """;
@@ -136,13 +136,19 @@ public class SqliteReservationPersistence {
         LocalDate out = LocalDate.parse(rs.getString("check_out_date"));
         DateRange range = new DateRange(in, out);
         Room room = placeholderRoom(roomNum);
+        Long guestId = null;
+        long gid = rs.getLong("guest_id");
+        if (!rs.wasNull()) {
+            guestId = gid;
+        }
         return new Reservation(
                 conf,
                 room,
                 range,
                 rs.getString("guest_name"),
                 rs.getString("masked_card_number"),
-                rs.getDouble("total_cost")
+                rs.getDouble("total_cost"),
+                guestId
         );
     }
 
@@ -171,7 +177,11 @@ public class SqliteReservationPersistence {
             ps.setString(4, r.getDateRange().getCheckOutDate().toString());
             ps.setInt(5, 1);
             ps.setString(6, LocalDate.now().toString());
-            ps.setNull(7, Types.VARCHAR);
+            if (r.getGuestUserId() != null) {
+                ps.setLong(7, r.getGuestUserId());
+            } else {
+                ps.setNull(7, Types.INTEGER);
+            }
             ps.setString(8, r.getGuestName());
             ps.setString(9, r.getMaskedCardNumber());
             ps.setDouble(10, r.getTotalCost());

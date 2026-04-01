@@ -134,7 +134,7 @@ public class ReservationService {
      * @return confirmation number for display
      */
     public String confirmAndSave(UserSession userSession, ReservationSummary summary, boolean guestApproved) {
-        userSession.requireLoggedInGuest();
+        People.Guest guest = userSession.requireLoggedInGuest();
         if (!guestApproved) {
             throw new IllegalArgumentException("Reservation requires guest approval of cost and details.");
         }
@@ -146,13 +146,15 @@ public class ReservationService {
         }
 
         String confirmationNumber = nextConfirmationNumber();
+        Long guestDbId = guest.getDatabaseId();
         Reservation reservation = new Reservation(
                 confirmationNumber,
                 room,
                 range,
                 summary.getGuestName(),
                 summary.getMaskedCardNumber(),
-                summary.getTotalCost()
+                summary.getTotalCost(),
+                guestDbId
         );
         addReservation(reservation);
         return confirmationNumber;

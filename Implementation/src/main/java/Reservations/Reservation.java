@@ -20,15 +20,18 @@ public class Reservation {
     private final String guestName;
     private final String maskedCardNumber;
     private final double totalCost;
+    /** {@link People.User#getDatabaseId()} for the guest, when known. */
+    private final Long guestUserId;
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
-                       String guestName, String maskedCardNumber, double totalCost) {
+                       String guestName, String maskedCardNumber, double totalCost, Long guestUserId) {
         this.confirmationNumber = confirmationNumber;
         this.room = room;
         this.dateRange = dateRange;
         this.guestName = guestName;
         this.maskedCardNumber = maskedCardNumber;
         this.totalCost = totalCost;
+        this.guestUserId = guestUserId;
     }
 
     public String getConfirmationNumber() {
@@ -53,5 +56,9 @@ public class Reservation {
 
     public double getTotalCost() {
         return totalCost;
+    }
+
+    public Long getGuestUserId() {
+        return guestUserId;
     }
 }
