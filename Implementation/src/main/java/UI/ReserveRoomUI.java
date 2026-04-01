@@ -2,15 +2,14 @@ package UI;
 
 import People.UserSession;
 import Reservations.ReservationSummary;
-import RoomCatalog.RoomCatalog;
 import Rooms.Room;
-import UseCases.ReserveRoom;
 import Utility.DateRange;
 import Utility.ReservationController;
-import Utility.ReservationService;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -23,15 +22,16 @@ import java.time.format.DateTimeParseException;
  */
 public class ReserveRoomUI extends JPanel {
 
+    private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
+
     private final ReservationController ResC;
     private final UserSession userSession;
 
     private final JComboBox<Integer> roomNumberCombo;
     private final JTextField guestNameField = new JTextField(15);
-    private final JTextField guestAddressField = new JTextField(20);
     private final JTextField creditCardField = new JTextField(16);
-    private final JTextField checkInDateField = new JTextField("YYYY-MM-DD", 10);
-    private final JTextField checkOutDateField = new JTextField("YYYY-MM-DD", 10);
+    private final JTextField checkInDateField = new JTextField(10);
+    private final JTextField checkOutDateField = new JTextField(10);
 
     private ReservationSummary currentPreview;
 
@@ -39,7 +39,7 @@ public class ReserveRoomUI extends JPanel {
         this.userSession = userSession;
         this.ResC = ResC;
 
-        setLayout(new GridLayout(9, 2, 5, 5));
+        setLayout(new GridLayout(8, 2, 5, 5));
 
         // Step 1: select desired room
         roomNumberCombo = new JComboBox<>();
@@ -52,9 +52,6 @@ public class ReserveRoomUI extends JPanel {
         add(new JLabel("Guest Name:"));
         add(guestNameField);
 
-        add(new JLabel("Address:"));
-        add(guestAddressField);
-
         add(new JLabel("Credit Card #:"));
         add(creditCardField);
 
@@ -63,6 +60,9 @@ public class ReserveRoomUI extends JPanel {
 
         add(new JLabel("Check-out (YYYY-MM-DD):"));
         add(checkOutDateField);
+
+        installDatePlaceholder(checkInDateField);
+        installDatePlaceholder(checkOutDateField);
 
         // Step 5-6: show summary then confirm
         JButton previewButton = new JButton("Calculate Cost");
@@ -85,18 +85,22 @@ public class ReserveRoomUI extends JPanel {
         try {
             int roomNumber = (Integer) roomNumberCombo.getSelectedItem();
             String guestName = guestNameField.getText();
-            String guestAddress = guestAddressField.getText();
             String creditCard = creditCardField.getText();
 
-            LocalDate checkIn = parseDate(checkInDateField.getText().trim());
-            LocalDate checkOut = parseDate(checkOutDateField.getText().trim());
+            String checkInRaw = dateFieldText(checkInDateField);
+            String checkOutRaw = dateFieldText(checkOutDateField);
+            if (checkInRaw.isEmpty() || checkOutRaw.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter check-in and check-out dates.", "Missing Dates", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            LocalDate checkIn = parseDate(checkInRaw);
+            LocalDate checkOut = parseDate(checkOutRaw);
             DateRange dateRange = new DateRange(checkIn, checkOut);
 
             // Steps 4-5: validate and compute preview summary
             currentPreview = ResC.reserveRoom(
                     roomNumber,
                     guestName,
-                    guestAddress,
                     creditCard,
                     dateRange
             );
@@ -127,6 +131,41 @@ public class ReserveRoomUI extends JPanel {
 
     private LocalDate parseDate(String text) {
         return LocalDate.parse(text);
+    }
+
+    /** Returns trimmed text, or empty if the field still shows the placeholder. */
+    private static String dateFieldText(JTextField field) {
+        String t = field.getText().trim();
+        if (t.isEmpty() || DATE_PLACEHOLDER.equals(t)) {
+            return "";
+        }
+        return t;
+    }
+
+    private static void installDatePlaceholder(JTextField field) {
+        Color normalFg = UIManager.getColor("TextField.foreground");
+        Color inactiveFg = UIManager.getColor("TextField.inactiveForeground");
+        final Color hintColor = inactiveFg != null ? inactiveFg : Color.GRAY;
+        final Color normalColor = normalFg != null ? normalFg : Color.BLACK;
+        field.setText(DATE_PLACEHOLDER);
+        field.setForeground(hintColor);
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (DATE_PLACEHOLDER.equals(field.getText())) {
+                    field.setText("");
+                    field.setForeground(normalColor);
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (field.getText().isEmpty()) {
+                    field.setText(DATE_PLACEHOLDER);
+                    field.setForeground(hintColor);
+                }
+            }
+        });
     }
 }
 

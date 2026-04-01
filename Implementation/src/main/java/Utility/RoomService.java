@@ -20,6 +20,11 @@ public class RoomService {
 
     public RoomService(RoomCatalog catalog) { this.catalog = catalog; }
 
+    /** For {@link ReservationService#buildPreview} and other callers that need catalog access. */
+    public RoomCatalog getCatalog() {
+        return catalog;
+    }
+
     public List<Room> searchRooms(RoomType roomType, int numGuests) {
         return catalog.getRooms().stream()
                 .filter(r -> r.getRoomType().equals(roomType))
