@@ -21,15 +21,16 @@ import Utility.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.file.Path;
 
 public class Driver {
 
     public static void main(String[] args) {
-        // Shared application state — one instance each, passed by reference
+        Path db = Path.of("data", "database.db");
         RoomCatalog roomCatalog = new RoomCatalog();
         UserCatalog userCatalog = new UserCatalog();
-        ReservationService resService = new ReservationService();
-        RoomService roomService = new RoomService(roomCatalog);
+        RoomService roomService = new RoomService(roomCatalog, db);
+        ReservationService resService = new ReservationService(db);
         UserSession userSession = new UserSession();
         userSession.login(new Guest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu"));
         userCatalog.addUser(userSession.getCurrentUser());

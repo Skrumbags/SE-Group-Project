@@ -6,8 +6,6 @@ import Rooms.RoomType;
 import Utility.DateRange;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -44,28 +42,10 @@ public class SqliteReservationPersistence {
                 Files.createDirectories(dbPath.getParent());
             }
             try (Connection conn = DriverManager.getConnection(jdbcUrl())) {
-                applySchema(conn);
+                SchemaInstaller.apply(conn);
             }
         } catch (IOException | SQLException e) {
             throw new RuntimeException("Failed to initialize SQLite at " + dbPath, e);
-        }
-    }
-
-    private static void applySchema(Connection conn) throws SQLException, IOException {
-        try (InputStream in = SqliteReservationPersistence.class.getClassLoader()
-                .getResourceAsStream("schema.sql")) {
-            if (in == null) {
-                throw new IOException("schema.sql not found on classpath");
-            }
-            String sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            try (Statement st = conn.createStatement()) {
-                for (String part : sql.split(";")) {
-                    String stmt = part.trim();
-                    if (!stmt.isEmpty()) {
-                        st.executeUpdate(stmt);
-                    }
-                }
-            }
         }
     }
 
