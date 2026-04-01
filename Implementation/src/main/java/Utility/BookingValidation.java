@@ -59,10 +59,7 @@ public final class BookingValidation {
                 return false;
             }
             if (alternate) {
-                n *= 2;
-                if (n > 9) {
-                    n -= 9;
-                }
+                n = (2 * n) % 9;
             }
             sum += n;
             alternate = !alternate;

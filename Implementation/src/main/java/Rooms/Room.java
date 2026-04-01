@@ -63,7 +63,7 @@ public class Room {
     public RoomType getRoomType() { return roomType; }
 
     public void setMaxDailyRate(double maxDailyRate) throws InvalidMaxDailyRate {
-        if  (maxDailyRate < 1) {
+        if  (maxDailyRate < 0) {
             throw new InvalidMaxDailyRate("Daily rate must be 0 or higher.");
         }
         this.maxDailyRate = maxDailyRate;

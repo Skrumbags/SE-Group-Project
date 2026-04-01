@@ -25,4 +25,10 @@ public class RoomService {
                 .filter(r -> r.getRoomType().equals(roomType))
                 .toList();
     }
+
+    public Room findRoom(int roomNumber) {
+        return catalog.findRoom(roomNumber);
+    }
+
+    public List<Room> getRooms() { return catalog.getRooms(); }
 }

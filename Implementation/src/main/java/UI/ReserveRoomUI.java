@@ -6,6 +6,7 @@ import RoomCatalog.RoomCatalog;
 import Rooms.Room;
 import UseCases.ReserveRoom;
 import Utility.DateRange;
+import Utility.ReservationController;
 import Utility.ReservationService;
 
 import javax.swing.*;
@@ -22,8 +23,8 @@ import java.time.format.DateTimeParseException;
  */
 public class ReserveRoomUI extends JPanel {
 
-    private final ReserveRoom reserveRoomUseCase;
-    private final RoomCatalog roomCatalog;
+    private final ReservationController ResC;
+    private final UserSession userSession;
 
     private final JComboBox<Integer> roomNumberCombo;
     private final JTextField guestNameField = new JTextField(15);
@@ -34,9 +35,9 @@ public class ReserveRoomUI extends JPanel {
 
     private ReservationSummary currentPreview;
 
-    public ReserveRoomUI(UserSession userSession, RoomCatalog roomCatalog, ReservationService reservationService) {
-        this.roomCatalog = roomCatalog;
-        this.reserveRoomUseCase = new ReserveRoom(userSession, roomCatalog, reservationService);
+    public ReserveRoomUI(UserSession userSession, ReservationController ResC) {
+        this.userSession = userSession;
+        this.ResC = ResC;
 
         setLayout(new GridLayout(9, 2, 5, 5));
 
@@ -75,7 +76,7 @@ public class ReserveRoomUI extends JPanel {
 
     private void refreshRoomOptions() {
         roomNumberCombo.removeAllItems();
-        for (Room r : roomCatalog.getRooms()) {
+        for (Room r : ResC.getRooms()) {
             roomNumberCombo.addItem(r.getRoomNumber());
         }
     }
@@ -92,7 +93,7 @@ public class ReserveRoomUI extends JPanel {
             DateRange dateRange = new DateRange(checkIn, checkOut);
 
             // Steps 4-5: validate and compute preview summary
-            currentPreview = reserveRoomUseCase.buildPreview(
+            currentPreview = ResC.reserveRoom(
                     roomNumber,
                     guestName,
                     guestAddress,
@@ -116,7 +117,7 @@ public class ReserveRoomUI extends JPanel {
             }
 
             // Steps 6-8: save reservation and show confirmation
-            String confirmationNumber = reserveRoomUseCase.confirmAndSave(currentPreview, true);
+            String confirmationNumber = ResC.confirmAndSaveReservation(currentPreview, true);
             currentPreview = null;
             JOptionPane.showMessageDialog(this, "Reservation confirmed! Confirmation: " + confirmationNumber, "Success", JOptionPane.INFORMATION_MESSAGE);
         } catch (IllegalStateException | IllegalArgumentException ex) {
