@@ -21,6 +21,7 @@ import Utility.DateRange;
 import Utility.ReservationService;
 
 import javax.swing.JFrame;
+import java.nio.file.Path;
 import java.util.List;
 
 public class ReservationRoomTesting {
@@ -43,7 +44,7 @@ public class ReservationRoomTesting {
         );
         roomCatalog.addRoom(room);
 
-        ReservationService reservationService = new ReservationService();
+        ReservationService reservationService = new ReservationService(Path.of("data", "database.db"));
         ReserveRoom reserveRoom = new ReserveRoom(userSession, roomCatalog, reservationService);
         DateRange range = new DateRange(3, 25, 2026, 3, 28, 2026);
 
@@ -95,7 +96,7 @@ public class ReservationRoomTesting {
                 new RoomType(RoomType.FloorType.URBAN, RoomType.BedType.DOUBLE)
         ));
 
-        ReservationService reservationService = new ReservationService();
+        ReservationService reservationService = new ReservationService(Path.of("data", "database.db"));
 
         ReserveRoomUI ui = new ReserveRoomUI(userSession, roomCatalog, reservationService);
 
