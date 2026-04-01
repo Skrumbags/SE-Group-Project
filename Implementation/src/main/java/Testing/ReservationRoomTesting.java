@@ -31,7 +31,7 @@ public class ReservationRoomTesting {
 
     private static void testReserveRoomHappyPath() {
         UserSession userSession = new UserSession();
-        userSession.login(new Guest());
+        userSession.login(new Guest("username", "pw", "Tim", "311", "tim@gmail.com"));
 
         RoomCatalog roomCatalog = new RoomCatalog();
         Room room = new Room(
@@ -76,7 +76,7 @@ public class ReservationRoomTesting {
 
     private static void launchReserveRoomUI() {
         UserSession userSession = new UserSession();
-        userSession.login(new Guest());
+        userSession.login(new Guest("username", "pw", "Tim", "311", "tim@gmail.com"));
 
         RoomCatalog roomCatalog = new RoomCatalog();
         // Add a couple sample rooms so the UI dropdown isn't empty.
