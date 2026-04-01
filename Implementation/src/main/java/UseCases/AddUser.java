@@ -11,6 +11,8 @@ package UseCases;
 
 import People.Guest;
 import People.UserCatalog;
+import Utility.UserController;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Use case: Register a new Guest in the system.
@@ -18,27 +20,19 @@ import People.UserCatalog;
  * delegates persistence to the catalog, returns a result.
  */
 public class AddUser {
+    public static void testWithoutUI1() {
+        UserCatalog userCatalog = new UserCatalog();
+        userCatalog.addUser(new Guest("abc", "123", "doremi", "123456789", "doremi@yahoo.com"));
+        UserController UC = new UserController(userCatalog);
 
-    public enum Result { SUCCESS, DUPLICATE_USERNAME, INVALID_INPUT }
+        UserController.Result result1 = UC.addGuest("abc", "asdasda", "asdasd", "", "asdasd");
+        UserController.Result result2 = UC.addGuest("fortnite", "asdasda", "asdasd", "asdasd", "");
+        UserController.Result result3 = UC.addGuest("sicembears", "asdasda", "", "asdasd", "asdasd");
 
-    private final UserCatalog catalog;
+        assertTrue(result1 == UserController.Result.DUPLICATE_USERNAME, "Should be a duplicate");
+        assertTrue(result2 == UserController.Result.SUCCESS, "Should be successful");
+        assertTrue(result3 == UserController.Result.INVALID_INPUT, "Should be invalid input");
 
-    public AddUser(UserCatalog catalog) {
-        this.catalog = catalog;
-    }
-
-    /**
-     * Attempts to create and register a new Guest.
-     * @return SUCCESS, DUPLICATE_USERNAME, or INVALID_INPUT
-     */
-    public Result execute(String username, String password,
-                          String name, String phone, String email) {
-
-        if (username.isBlank() || password.isBlank() || name.isBlank()) {
-            return Result.INVALID_INPUT;
-        }
-
-        Guest guest = new Guest(username, password, name, phone, email);
-        return catalog.addUser(guest) ? Result.SUCCESS : Result.DUPLICATE_USERNAME;
+        System.out.println("Passed Test 1");
     }
 }

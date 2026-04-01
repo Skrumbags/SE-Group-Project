@@ -9,9 +9,11 @@
 
 package People;
 
+import java.util.Objects;
+
 /**
  * A hotel guest who can make reservations.
- * Registered via {@link UseCases.AddUser} and stored in {@link UserCatalog}.
+ * Registered via {@link Utility.UserController} and stored in {@link UserCatalog}.
  */
 public class Guest extends User {
 
@@ -37,5 +39,17 @@ public class Guest extends User {
     @Override
     public String toString() {
         return "Guest[" + getUsername() + " | " + getName() + " | " + email + "]";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Guest)) return false;
+        Guest g = (Guest) o;
+        return this.username.equals(g.username);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(username);
     }
 }
