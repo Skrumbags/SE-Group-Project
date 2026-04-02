@@ -79,7 +79,7 @@ public class ReserveRoomUI extends JPanel {
         backButton.setVisible(false);
     }
 
-    public void refreshRoomOptions() {
+    private void refreshRoomOptions() {
         roomNumberCombo.removeAllItems();
         for (Room r : ResC.getRooms()) {
             roomNumberCombo.addItem(r.getRoomNumber());

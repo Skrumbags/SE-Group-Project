@@ -16,9 +16,6 @@ public class MasterUI {
     private final ReservationController reservationController;
     private final SearchController searchController;
     private final UserController userController;
-    private AddUserUI addUserPanel = null;
-    private AddRoomUI addRoomPanel = null;
-    private ReserveRoomUI reservePanel = null;
 
     public MasterUI(UserSession userSession, ReservationController reservationController,
                             SearchController searchController, UserController userController) {
@@ -41,9 +38,9 @@ public class MasterUI {
 
         // ── Panels ────────────────────────────────────────────────────────────
         JPanel welcomePanel    = buildWelcomePanel(cards, root);
-        addUserPanel = new AddUserUI(userController);
-        addRoomPanel = new AddRoomUI(searchController.getRoomService());
-        reservePanel = new ReserveRoomUI(userSession, reservationController);
+        AddUserUI addUserPanel = new AddUserUI(userController);
+        AddRoomUI addRoomPanel = new AddRoomUI(searchController.getRoomService());
+        ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, reservationController);
 
         // Back Button
         ActionListener goBack = e -> cards.show(root, "WELCOME");
@@ -84,10 +81,7 @@ public class MasterUI {
         styleNavButton(toAddRoom);
 
         toAddUser.addActionListener(e -> cards.show(root, "ADD_USER"));
-        toReserve.addActionListener(e -> {
-            reservePanel.refreshRoomOptions();
-            cards.show(root, "RESERVE");
-        });
+        toReserve.addActionListener(e -> cards.show(root, "RESERVE"));
         toAddRoom.addActionListener(e -> cards.show(root, "ADD_ROOM"));
 
         buttonPanel.add(toAddUser);
