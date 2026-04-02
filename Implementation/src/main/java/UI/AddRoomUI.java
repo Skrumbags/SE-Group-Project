@@ -25,6 +25,7 @@ public class AddRoomUI extends JPanel {
     public AddRoomUI(RoomService roomService) {
         this.roomService = roomService;
         setLayout(new GridLayout(7, 2, 5, 5));
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         add(new JLabel("Room Number:"));  add(roomNumberField);
         add(new JLabel("Floor Type:"));   add(floorTypeBox);

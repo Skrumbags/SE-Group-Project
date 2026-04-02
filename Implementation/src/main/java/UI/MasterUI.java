@@ -40,7 +40,7 @@ public class MasterUI {
         JPanel root = new JPanel(cards);
 
         // ── Panels ────────────────────────────────────────────────────────────
-        JPanel welcomePanel    = buildWelcomePanel(cards, root);
+        JPanel welcomePanel = buildWelcomePanel(cards, root);
         addUserPanel = new AddUserUI(userController);
         addRoomPanel = new AddRoomUI(searchController.getRoomService());
         reservePanel = new ReserveRoomUI(userSession, reservationController);
