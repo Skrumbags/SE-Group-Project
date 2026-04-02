@@ -84,6 +84,12 @@ public class Room {
     }
 
     @Override
+    public String toString() {
+        return Integer.toString(roomNumber) + ": $" + Double.toString(maxDailyRate) + ", " +
+                    roomType.getFloorType().toString() + ", " + roomType.getBedType().toString();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (!(o instanceof Room)) return false;
         Room r = (Room) o;
