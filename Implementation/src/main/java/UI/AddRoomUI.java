@@ -49,13 +49,18 @@ public class AddRoomUI extends JPanel {
                     (BedType) bedTypeBox.getSelectedItem()
             );
 
-            Room newRoom = new Room(roomNumber, smokingCheck.isSelected(), false, dailyRate, roomType);
-            boolean success = roomService.addRoom(newRoom);
+            if (roomNumber < 0 || dailyRate < 0) {
+                JOptionPane.showMessageDialog(this, "Room number and Daily rate must be >= 0.");
+            }
+            else {
+                Room newRoom = new Room(roomNumber, smokingCheck.isSelected(), false, dailyRate, roomType);
+                boolean success = roomService.addRoom(newRoom);
 
-            if (success) {
-                JOptionPane.showMessageDialog(this, "Room " + roomNumber + " added!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Room " + roomNumber + " already exists!");
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Room " + roomNumber + " added!");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Room " + roomNumber + " already exists!");
+                }
             }
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter valid numbers.");
