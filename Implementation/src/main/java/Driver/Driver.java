@@ -13,6 +13,7 @@ import People.Guest;
 import People.UserCatalog;
 import People.UserSession;
 import RoomCatalog.RoomCatalog;
+import UI.AddRoomUI;
 import UI.MasterUI;
 import Utility.*;
 
@@ -40,5 +41,17 @@ public class Driver {
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController);
         SwingUtilities.invokeLater(ui::buildAndShowUI);
+
+        /*RoomCatalog rooms = new RoomCatalog();
+        RoomService service = new RoomService(rooms);
+        AddRoomUI ui = new AddRoomUI(service);
+
+        JFrame frame = new JFrame("Test Add Room");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(ui);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);*/
+
     }
 }
