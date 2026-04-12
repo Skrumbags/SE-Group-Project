@@ -9,9 +9,7 @@
 package Driver;
 
 // Imports for Room + RoomType
-import People.Guest;
-import People.UserCatalog;
-import People.UserSession;
+import People.*;
 import RoomCatalog.RoomCatalog;
 import UI.AddRoomUI;
 import UI.MasterUI;
@@ -38,6 +36,11 @@ public class Driver {
         userSession.login((Guest) userCatalog.findByUsername("Matt"));
         SearchController searchController = new SearchController(roomService, resService);
         ReservationController reservationController = new ReservationController(roomService, resService, userSession);
+
+        //ADDITIONS FOR TESTING LOGIN
+        userCatalog.addUser(new Admin(1, "admin", "admin123", "Admin User"));
+        userCatalog.addUser(new Clerk(2, "clerk", "clerk123", "Clerk User"));
+        userCatalog.addUser(new Guest("guest", "guest123", "Guest User", "555-1234", "guest@email.com"));
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController);
         SwingUtilities.invokeLater(ui::buildAndShowUI);

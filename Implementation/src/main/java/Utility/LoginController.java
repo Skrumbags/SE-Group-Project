@@ -13,6 +13,7 @@ public class LoginController {
     // Will return user if in catalog, null if not
     public User login(String username, String password) {
         User user = userCatalog.findByUsername(username);
+        System.out.println(user);
         if (user == null) return null;
         if (!user.checkPassword(password)) return null;
         return user;

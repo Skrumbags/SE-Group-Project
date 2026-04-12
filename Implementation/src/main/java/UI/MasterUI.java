@@ -90,6 +90,8 @@ public class MasterUI {
         navBar.add(reserveBtn);
         navBar.add(loginBtn); // TODO: connect login case when written
 
+        loginBtn.addActionListener(e -> cards.show(root, "LOGIN"));
+
         // ── Check Available ───────────────────────────────────────────────────
         JPanel checkAvailablityPanel = new JPanel(new GridLayout(1, 1));
         checkAvailablityPanel.add(new JLabel("Room Number:"));
@@ -110,6 +112,18 @@ public class MasterUI {
         homeBtn.addActionListener(e -> cards.show(root, "WELCOME"));
         addRoomBtn.addActionListener(e -> cards.show(root, "ADD_ROOM"));
         reserveBtn.addActionListener(e -> cards.show(root, "RESERVE"));
+
+        // --- Login Stuff -----
+        UserCatalog userCatalog = userController.getUserCatalog(); // gets from controller
+        LoginController loginController = new LoginController(userCatalog);
+        LoginUI loginPanel = new LoginUI(
+                loginController,
+                () -> cards.show(root, "ADMIN"),    // admin goes to admin screen
+                () -> cards.show(root, "CLERK"),    // clerk goes to clerk screen
+                () -> cards.show(root, "WELCOME")   // guest goes to welcome screen
+        );
+        root.add(loginPanel, "LOGIN");
+        cards.show(root, "LOGIN"); // start on login screen
 
         // ── Images ────────────────────────────────────────────────
 

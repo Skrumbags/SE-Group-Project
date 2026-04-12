@@ -110,4 +110,10 @@ public class UserController {
     public boolean exists(String username) {
         return userCatalog.exists(username);
     }
+
+    //ADDITION FOR LOGIN - H
+    public UserCatalog getUserCatalog() {
+        return userCatalog;
+    }
+
 }
