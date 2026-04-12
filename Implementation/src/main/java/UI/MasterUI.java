@@ -84,9 +84,11 @@ public class MasterUI {
         JButton homeBtn = new JButton("Home");
         JButton addRoomBtn = new JButton("Add Room");
         JButton reserveBtn = new JButton("Reservations");
+        JButton loginBtn = new JButton("Login");
         navBar.add(homeBtn);
         navBar.add(addRoomBtn);
         navBar.add(reserveBtn);
+        navBar.add(loginBtn); // TODO: connect login case when written
 
         // ── Check Available ───────────────────────────────────────────────────
         JPanel checkAvailablityPanel = new JPanel(new GridLayout(1, 1));
