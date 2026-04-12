@@ -120,7 +120,8 @@ public class MasterUI {
                 loginController,
                 () -> cards.show(root, "ADMIN"),    // admin goes to admin screen
                 () -> cards.show(root, "CLERK"),    // clerk goes to clerk screen
-                () -> cards.show(root, "WELCOME")   // guest goes to welcome screen
+                () -> cards.show(root, "WELCOME"),   // guest goes to welcome screen
+                () -> cards.show(root, "ADD_USER")
         );
         root.add(loginPanel, "LOGIN");
         cards.show(root, "LOGIN"); // start on login screen
@@ -149,7 +150,8 @@ public class MasterUI {
         // ── Navigation buttons ───────────────────────────────────────────────
         JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 0, 15));
 
-        JButton toAddUser = new JButton("Add a User");
+        // Moved to LoginUI >
+        /*JButton toAddUser = new JButton("Add a User");
         JButton toReserve = new JButton("Reserve a Room");
         JButton toAddRoom = new JButton("Add a Room");
 
@@ -165,7 +167,7 @@ public class MasterUI {
         buttonPanel.add(toReserve);
         buttonPanel.add(toAddRoom);
 
-        panel.add(buttonPanel, BorderLayout.CENTER);
+        panel.add(buttonPanel, BorderLayout.CENTER);*/
 
         //Allows checking availability before login:
         // ── Availability checker ─────────────────────────────────────────────

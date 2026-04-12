@@ -15,7 +15,7 @@ public class LoginUI extends JPanel {
     private JPasswordField passwordField = new JPasswordField(15);
 
     public LoginUI(LoginController loginController, Runnable onAdminLogin,
-                   Runnable onClerkLogin, Runnable onGuestLogin) {
+                   Runnable onClerkLogin, Runnable onGuestLogin, Runnable onCreateUser) {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
@@ -64,5 +64,18 @@ public class LoginUI extends JPanel {
                 onGuestLogin.run();
             }
         });
+
+        //Create a new user moved here >
+        JButton createUser = new JButton("Create New User");
+        createUser.addActionListener(e -> onCreateUser.run());
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
+        add(createUser, gbc);
+
+    }
+
+    private void styleNavButton(JButton btn) {
+        btn.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        btn.setPreferredSize(new Dimension(0, 45));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 }
