@@ -1,22 +1,18 @@
 package UI;
 
-import People.Guest;
-import People.User;
-import People.UserCatalog;
-import People.UserSession;
-import RoomCatalog.RoomCatalog;
-import Rooms.Room;
-import Utility.*;
+import Domain.People.UserCatalog;
+import Domain.People.UserSession;
+import Domain.Rooms.Room;
+import Controllers.*;
 import java.util.Date;
 import java.util.List;
 import java.time.LocalDate;
-import Rooms.RoomType;
-import Utility.DateRange;
-import Utility.SearchCriteria;
+import Domain.Rooms.RoomType;
+import Domain.Shared.DateRange;
+import Domain.Rooms.SearchCriteria;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 
 public class MasterUI {
     private final UserSession userSession;
@@ -86,7 +82,7 @@ public class MasterUI {
         JPanel navBar = new JPanel(new GridLayout(1, 3));
         JButton homeBtn = new JButton("Home");
         JButton addRoomBtn = new JButton("Add Room");
-        JButton reserveBtn = new JButton("Reservations");
+        JButton reserveBtn = new JButton("Domain/Reservations");
         JButton loginBtn = new JButton("Login");
         navBar.add(homeBtn);
         navBar.add(addRoomBtn);

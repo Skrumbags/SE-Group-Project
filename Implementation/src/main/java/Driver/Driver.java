@@ -9,14 +9,14 @@
 package Driver;
 
 // Imports for Room + RoomType
-import People.*;
-import RoomCatalog.RoomCatalog;
-import UI.AddRoomUI;
+import Domain.People.*;
+import Domain.Rooms.RoomCatalog;
+import Domain.Services.ReservationService;
+import Domain.Services.RoomService;
 import UI.MasterUI;
-import Utility.*;
+import Controllers.*;
 
 import javax.swing.*;
-import java.awt.*;
 import java.nio.file.Path;
 
 public class Driver {

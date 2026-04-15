@@ -1,11 +1,10 @@
 package UI;
 
-import Rooms.Room;
-import Rooms.RoomType;
-import Rooms.RoomType.FloorType;
-import Rooms.RoomType.BedType;
-import RoomCatalog.RoomCatalog;
-import Utility.RoomService;
+import Domain.Rooms.Room;
+import Domain.Rooms.RoomType;
+import Domain.Rooms.RoomType.FloorType;
+import Domain.Rooms.RoomType.BedType;
+import Domain.Services.RoomService;
 
 import javax.swing.*;
 import java.awt.*;

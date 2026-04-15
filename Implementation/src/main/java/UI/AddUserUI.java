@@ -1,7 +1,5 @@
 package UI;
-import People.UserCatalog;
-import UseCases.AddUser;
-import Utility.UserController;
+import Controllers.UserController;
 
 import javax.swing.*;
 import java.awt.*;

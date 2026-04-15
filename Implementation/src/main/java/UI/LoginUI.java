@@ -1,10 +1,10 @@
 package UI;
 
-import People.Admin;
-import People.Clerk;
-import People.Guest;
-import People.User;
-import Utility.LoginController;
+import Domain.People.Admin;
+import Domain.People.Clerk;
+import Domain.People.Guest;
+import Domain.People.User;
+import Controllers.LoginController;
 
 import javax.swing.*;
 import java.awt.*;

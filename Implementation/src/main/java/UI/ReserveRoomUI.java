@@ -1,10 +1,10 @@
 package UI;
 
-import People.UserSession;
-import Reservations.ReservationSummary;
-import Rooms.Room;
-import Utility.DateRange;
-import Utility.ReservationController;
+import Domain.People.UserSession;
+import Domain.Reservations.ReservationSummary;
+import Domain.Rooms.Room;
+import Domain.Shared.DateRange;
+import Controllers.ReservationController;
 
 import javax.swing.*;
 import java.awt.*;
