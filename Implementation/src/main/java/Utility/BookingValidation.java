@@ -35,9 +35,9 @@ public final class BookingValidation {
         if (digits.length() < 13 || digits.length() > 19) {
             return "Credit card number must be between 13 and 19 digits.";
         }
-        if (!passesLuhn(digits)) {
-            return "Credit card number is not valid.";
-        }
+//        if (!passesLuhn(digits)) {
+//            return "Credit card number is not valid.";
+//        }
         return null;
     }
 

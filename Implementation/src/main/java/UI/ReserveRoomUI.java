@@ -42,6 +42,7 @@ public class ReserveRoomUI extends JPanel {
         this.ResC = ResC;
 
         setLayout(new GridLayout(8, 2, 5, 5));
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Step 1: select desired room
         roomNumberCombo = new JComboBox<>();
@@ -79,7 +80,7 @@ public class ReserveRoomUI extends JPanel {
         backButton.setVisible(false);
     }
 
-    private void refreshRoomOptions() {
+    public void refreshRoomOptions() {
         roomNumberCombo.removeAllItems();
         for (Room r : ResC.getRooms()) {
             roomNumberCombo.addItem(r.getRoomNumber());
