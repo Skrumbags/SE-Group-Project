@@ -6,10 +6,8 @@ import Domain.People.User;
 import javax.swing.*;
 import java.awt.*;
 
-public class AdminUI extends JPanel {
-    // After logging in as admin
-
-    public AdminUI(UserController usercontroller, User user) {
+public class ClerkUI extends JPanel {
+    public ClerkUI(UserController usercontroller, User user) {
 
         // Sections off information in grids
         JPanel panel = new JPanel(new GridBagLayout());
@@ -45,7 +43,9 @@ public class AdminUI extends JPanel {
 
         // Bottom-Right: Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(new JButton("Manage Users")); // add clerk
+        buttonPanel.add(new JButton("Personal Information"));
+        buttonPanel.add(new JButton("Modify Rooms"));
+        buttonPanel.add(new JButton("Reservation Actions"));
 
         gbc.gridx = 1;
         gbc.gridy = 1;

@@ -6,10 +6,9 @@ import Domain.People.User;
 import javax.swing.*;
 import java.awt.*;
 
-public class AdminUI extends JPanel {
-    // After logging in as admin
+public class GuestUI extends JPanel {
 
-    public AdminUI(UserController usercontroller, User user) {
+    public GuestUI(UserController userController, User user) {
 
         // Sections off information in grids
         JPanel panel = new JPanel(new GridBagLayout());

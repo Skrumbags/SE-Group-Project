@@ -106,6 +106,9 @@ public class MasterUI {
         root.add(addUserPanel, "ADD_USER");
         root.add(addRoomPanel, "ADD_ROOM");
         root.add(reservePanel, "RESERVE");
+        root.add(new AdminUI(userController, userSession.getCurrentUser()), "ADMIN");
+        root.add(new ClerkUI(userController, userSession.getCurrentUser()), "CLERK");
+        root.add(new GuestUI(userController, userSession.getCurrentUser()), "GUEST");
 
         // ── Nav button actions ────────────────────────────────────────────────
         homeBtn.addActionListener(e -> cards.show(root, "WELCOME"));
