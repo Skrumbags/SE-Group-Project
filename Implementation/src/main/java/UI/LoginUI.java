@@ -15,7 +15,7 @@ public class LoginUI extends JPanel {
     private JPasswordField passwordField = new JPasswordField(15);
 
     public LoginUI(LoginController loginController, Runnable onAdminLogin,
-                   Runnable onClerkLogin, Runnable onGuestLogin, Runnable onCreateUser) {
+                   Runnable onClerkLogin, Runnable onGuestLogin, Runnable onCreateUser, Runnable onCreateClerk) {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);

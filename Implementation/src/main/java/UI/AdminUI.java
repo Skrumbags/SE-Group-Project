@@ -9,7 +9,7 @@ import java.awt.*;
 public class AdminUI extends JPanel {
     // After logging in as admin
 
-    public AdminUI(UserController usercontroller, User user) {
+    public AdminUI(UserController usercontroller, User user, Runnable onAddUserClerk) {
 
         // Sections off information in grids
         JPanel panel = new JPanel(new GridBagLayout());
@@ -44,8 +44,11 @@ public class AdminUI extends JPanel {
         panel.add(imageLabel, gbc);
 
         // Bottom-Right: Buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(new JButton("Manage Users")); // add clerk
+        JButton manageUsersButton = new JButton("Manage Users");
+
+        manageUsersButton.addActionListener(e -> {
+            onAddUserClerk.run();
+        });
 
         gbc.gridx = 1;
         gbc.gridy = 1;
@@ -53,7 +56,7 @@ public class AdminUI extends JPanel {
         gbc.fill = GridBagConstraints.NONE; // reset for each component
         gbc.weightx = 1;
 
-        panel.add(buttonPanel, gbc);
+        panel.add(manageUsersButton);
 
         // Add everything together:
         add(panel, BorderLayout.CENTER);

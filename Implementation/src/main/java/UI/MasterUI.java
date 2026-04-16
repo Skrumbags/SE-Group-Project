@@ -99,6 +99,8 @@ public class MasterUI {
         // ── Panels ────────────────────────────────────────────────────────────
         JPanel welcomePanel    = buildWelcomePanel(cards, root);
         AddUserUI addUserPanel = new AddUserUI(userController);
+        // New to distinguish
+        AddCA_UI addClerkAdmin = new AddCA_UI(userController);
         AddRoomUI addRoomPanel = new AddRoomUI(searchController.getRoomService());
         ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, reservationController);
 
@@ -106,7 +108,12 @@ public class MasterUI {
         root.add(addUserPanel, "ADD_USER");
         root.add(addRoomPanel, "ADD_ROOM");
         root.add(reservePanel, "RESERVE");
-        root.add(new AdminUI(userController, userSession.getCurrentUser()), "ADMIN");
+
+        root.add(new AdminUI(userController, userSession.getCurrentUser(),
+                        () -> cards.show(root, "ADD_USER_CLERK")), "ADMIN"
+        );
+        root.add(addClerkAdmin, "ADD_USER_CLERK");
+
         root.add(new ClerkUI(userController, userSession.getCurrentUser()), "CLERK");
         root.add(new GuestUI(userController, userSession.getCurrentUser()), "GUEST");
 
@@ -123,7 +130,8 @@ public class MasterUI {
                 () -> cards.show(root, "ADMIN"),    // admin goes to admin screen
                 () -> cards.show(root, "CLERK"),    // clerk goes to clerk screen
                 () -> cards.show(root, "WELCOME"),   // guest goes to welcome screen
-                () -> cards.show(root, "ADD_USER")
+                () -> cards.show(root, "ADD_USER"),
+                () -> cards.show(root, "ADD_USER_CLERK")
         );
         root.add(loginPanel, "LOGIN");
         cards.show(root, "LOGIN"); // start on login screen
