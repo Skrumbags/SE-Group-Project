@@ -4,6 +4,7 @@ import Domain.People.Admin;
 import Domain.People.Clerk;
 import Domain.People.Guest;
 import Domain.People.User;
+import Domain.People.UserSession;
 import Controllers.LoginController;
 
 import javax.swing.*;
@@ -14,8 +15,9 @@ public class LoginUI extends JPanel {
     private JTextField usernameField = new JTextField(15);
     private JPasswordField passwordField = new JPasswordField(15);
 
-    public LoginUI(LoginController loginController, Runnable onAdminLogin,
-                   Runnable onClerkLogin, Runnable onGuestLogin, Runnable onCreateUser, Runnable onCreateClerk) {
+    public LoginUI(LoginController loginController, UserSession userSession, Runnable onSessionChanged,
+                   Runnable onAdminLogin, Runnable onClerkLogin, Runnable onGuestLogin,
+                   Runnable onCreateUser, Runnable onCreateClerk) {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
@@ -43,6 +45,13 @@ public class LoginUI extends JPanel {
         add(loginButton, gbc);
 
         loginButton.addActionListener(e -> {
+            if (userSession.isLoggedIn()) {
+                JOptionPane.showMessageDialog(this,
+                        "You are already signed in. Sign out before signing in as a different user.",
+                        "Already signed in", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
             String username = usernameField.getText().trim();
             String password = new String(passwordField.getPassword());
 
@@ -54,6 +63,11 @@ public class LoginUI extends JPanel {
                         "Login Failed", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
+            userSession.login(user);
+            onSessionChanged.run();
+
+            passwordField.setText("");
 
             // route to correct screen based on role
             if (user instanceof Admin) {

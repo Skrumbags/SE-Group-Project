@@ -10,12 +10,20 @@ public class LoginController {
         this.userCatalog = userCatalog;
     }
 
-    // Will return user if in catalog, null if not
+    /**
+     * Verifies credentials against the catalog. Does not modify {@link Domain.People.UserSession};
+     * the UI layer should call {@code userSession.login(user)} after a successful result.
+     *
+     * @return the authenticated user, or {@code null} if username unknown or password wrong
+     */
     public User login(String username, String password) {
         User user = userCatalog.findByUsername(username);
-        System.out.println(user);
-        if (user == null) return null;
-        if (!user.checkPassword(password)) return null;
+        if (user == null) {
+            return null;
+        }
+        if (!user.checkPassword(password)) {
+            return null;
+        }
         return user;
     }
 }
