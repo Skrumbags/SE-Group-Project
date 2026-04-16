@@ -32,11 +32,6 @@ public class ReservationService {
     private final AtomicLong confirmationSeq;
     private final SqliteReservationPersistence sqlite;
 
-    public ReservationService() {
-        this.sqlite = null;
-        this.confirmationSeq = new AtomicLong(10_000);
-    }
-
     /**
      * In-memory list plus SQLite: loads existing rows at startup, persists new ones,
      * and uses SQL for overlap checks so restarts stay consistent with the file.
@@ -46,7 +41,7 @@ public class ReservationService {
         this.sqlite.initialize();
         try {
             this.confirmationSeq = new AtomicLong(this.sqlite.nextConfirmationCounterStart());
-            this.reservationList.addAll(this.sqlite.findAll());
+            loadList();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load reservations from database", e);
         }
@@ -59,13 +54,14 @@ public class ReservationService {
     }
 
     public boolean isReserved(Room room, DateRange dateRange) {
-        if (sqlite != null) {
-            try {
-                return sqlite.existsOverlap(room.getRoomNumber(), dateRange);
-            } catch (SQLException e) {
-                throw new RuntimeException("Failed to check reservation overlap", e);
-            }
-        }
+        // This probably violates information expert
+//        if (sqlite != null) {
+//            try {
+//                return sqlite.existsOverlap(room.getRoomNumber(), dateRange);
+//            } catch (SQLException e) {
+//                throw new RuntimeException("Failed to check reservation overlap", e);
+//            }
+//        }
         for (Reservation res : reservationList) {
             if (room.equals(res.getRoom()) && dateRange.overlaps(res.getDateRange())) {
                 return true;
@@ -75,10 +71,10 @@ public class ReservationService {
     }
 
     public void addReservation(Reservation reservation) {
-        reservationList.add(reservation);
         if (sqlite != null) {
             try {
                 sqlite.save(reservation);
+                loadList();
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to save reservation to database", e);
             }
@@ -161,5 +157,10 @@ public class ReservationService {
         );
         addReservation(reservation);
         return confirmationNumber;
+    }
+
+    private void loadList() throws SQLException {
+        reservationList.clear();
+        reservationList.addAll(this.sqlite.findAll());
     }
 }
