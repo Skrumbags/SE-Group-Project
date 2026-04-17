@@ -41,7 +41,7 @@ public class Driver {
         if (userCatalog.findByUsername("Matt") == null) {
             userController.addGuest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu");
         }
-        userSession.login((Guest) userCatalog.findByUsername("Matt"));
+        // Session starts signed out; user signs in via LoginUI.
         SearchController searchController = new SearchController(roomService, resService);
         ReservationController reservationController = new ReservationController(roomService, resService, userSession);
 

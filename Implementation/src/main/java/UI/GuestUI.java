@@ -18,7 +18,8 @@ public class GuestUI extends JPanel {
         gbc.insets = new Insets(10, 10, 10, 10);
 
         // Top-Left: Name and Welcome
-        JLabel nameLabel = new JLabel("Hello, " + user.getName() + "!");
+        String greeting = (user != null) ? ("Hello, " + user.getName() + "!") : "Hello!";
+        JLabel nameLabel = new JLabel(greeting);
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
 
         gbc.gridx = 0;

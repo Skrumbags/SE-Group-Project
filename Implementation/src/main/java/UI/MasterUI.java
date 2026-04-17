@@ -1,5 +1,6 @@
 package UI;
 
+import Domain.People.User;
 import Domain.People.UserCatalog;
 import Domain.People.UserSession;
 import Domain.Rooms.Room;
@@ -15,6 +16,9 @@ import javax.swing.*;
 import java.awt.*;
 
 public class MasterUI {
+    /** Shown under the welcome title when someone is signed in. */
+    private JLabel homeUserStatusLabel;
+
     private final UserSession userSession;
     private final ReservationController reservationController;
     private final SearchController searchController;
@@ -78,18 +82,60 @@ public class MasterUI {
         JPanel root = new JPanel(cards);
 
         // ── Nav Bar ───────────────────────────────────────────────────────────
-        // TODO: for general page rn (no user distinction), should change for clerk + guest + admin later
-        JPanel navBar = new JPanel(new GridLayout(1, 3));
+        JPanel navLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         JButton homeBtn = new JButton("Home");
         JButton addRoomBtn = new JButton("Add Room");
         JButton reserveBtn = new JButton("Domain/Reservations");
-        JButton loginBtn = new JButton("Login");
-        navBar.add(homeBtn);
-        navBar.add(addRoomBtn);
-        navBar.add(reserveBtn);
-        navBar.add(loginBtn); // TODO: connect login case when written
+        navLeft.add(homeBtn);
+        navLeft.add(addRoomBtn);
+        navLeft.add(reserveBtn);
 
-        loginBtn.addActionListener(e -> cards.show(root, "LOGIN"));
+        JLabel navUserLabel = new JLabel("Not signed in");
+        navUserLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        JButton sessionBtn = new JButton("Login");
+
+        Runnable refreshSessionUi = () -> {
+            User u = userSession.getCurrentUser();
+            if (u != null) {
+                navUserLabel.setText("Signed in as " + u.getUsername() + " (" + u.getClass().getSimpleName() + ")");
+                sessionBtn.setText("Logout");
+                if (homeUserStatusLabel != null) {
+                    homeUserStatusLabel.setText("Signed in as " + u.getUsername());
+                }
+            } else {
+                navUserLabel.setText("Not signed in");
+                sessionBtn.setText("Login");
+                if (homeUserStatusLabel != null) {
+                    homeUserStatusLabel.setText(" ");
+                }
+            }
+        };
+
+        sessionBtn.addActionListener(e -> {
+            if (userSession.isLoggedIn()) {
+                int ok = JOptionPane.showConfirmDialog(
+                        frame,
+                        "Sign out?",
+                        "Logout",
+                        JOptionPane.OK_CANCEL_OPTION
+                );
+                if (ok == JOptionPane.OK_OPTION) {
+                    userSession.logout();
+                    refreshSessionUi.run();
+                    cards.show(root, "WELCOME");
+                }
+            } else {
+                cards.show(root, "LOGIN");
+            }
+        });
+
+        JPanel navRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 5));
+        navRight.add(navUserLabel);
+        navRight.add(sessionBtn);
+
+        JPanel navBar = new JPanel(new BorderLayout());
+        navBar.add(navLeft, BorderLayout.WEST);
+        navBar.add(navRight, BorderLayout.EAST);
 
         // ── Check Available ───────────────────────────────────────────────────
         JPanel checkAvailablityPanel = new JPanel(new GridLayout(1, 1));
@@ -109,13 +155,10 @@ public class MasterUI {
         root.add(addRoomPanel, "ADD_ROOM");
         root.add(reservePanel, "RESERVE");
 
-        root.add(new AdminUI(userController, userSession.getCurrentUser(),
-                        () -> cards.show(root, "ADD_USER_CLERK")), "ADMIN"
-        );
         root.add(addClerkAdmin, "ADD_USER_CLERK");
 
-        root.add(new ClerkUI(userController, userSession.getCurrentUser()), "CLERK");
-        root.add(new GuestUI(userController, userSession.getCurrentUser()), "GUEST");
+        // ADMIN / CLERK / GUEST role screens are created when the user logs in so they always
+        // receive the current User from the session (not null at app startup).
 
         // ── Nav button actions ────────────────────────────────────────────────
         homeBtn.addActionListener(e -> cards.show(root, "WELCOME"));
@@ -127,16 +170,22 @@ public class MasterUI {
         LoginController loginController = new LoginController(userCatalog);
         LoginUI loginPanel = new LoginUI(
                 loginController,
-                () -> cards.show(root, "ADMIN"),    // admin goes to admin screen
-                () -> cards.show(root, "CLERK"),    // clerk goes to clerk screen
-                () -> cards.show(root, "WELCOME"),   // guest goes to welcome screen
+                userSession,
+                refreshSessionUi,
+                () -> {
+                    root.add(new AdminUI(userController, userSession.getCurrentUser(),
+                            () -> cards.show(root, "ADD_USER_CLERK")), "ADMIN");
+                    cards.show(root, "ADMIN");
+                },
+                () -> {
+                    root.add(new ClerkUI(userController, userSession.getCurrentUser()), "CLERK");
+                    cards.show(root, "CLERK");
+                },
+                () -> cards.show(root, "WELCOME"),
                 () -> cards.show(root, "ADD_USER"),
                 () -> cards.show(root, "ADD_USER_CLERK")
         );
         root.add(loginPanel, "LOGIN");
-        cards.show(root, "LOGIN"); // start on login screen
-
-        // ── Images ────────────────────────────────────────────────
 
         // ── Assemble frame ────────────────────────────────────────────────────
         frame.setLayout(new BorderLayout());
@@ -144,6 +193,7 @@ public class MasterUI {
         frame.add(root, BorderLayout.CENTER);
 
         cards.show(root, "WELCOME");
+        refreshSessionUi.run();
         frame.setVisible(true);
     }
 
@@ -152,10 +202,15 @@ public class MasterUI {
         JPanel panel = new JPanel(new BorderLayout(10, 20));
         panel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
-        // ── Welcome label ────────────────────────────────────────────────────
+        // ── Welcome label + signed-in line (updated when session changes) ────
+        JPanel northStack = new JPanel(new GridLayout(2, 1, 0, 6));
         JLabel welcome = new JLabel("Welcome to Hotel Reservation App", SwingConstants.CENTER);
         welcome.setFont(new Font("SansSerif", Font.BOLD, 22));
-        panel.add(welcome, BorderLayout.NORTH);
+        northStack.add(welcome);
+        homeUserStatusLabel = new JLabel(" ", SwingConstants.CENTER);
+        homeUserStatusLabel.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        northStack.add(homeUserStatusLabel);
+        panel.add(northStack, BorderLayout.NORTH);
 
         // ── Navigation buttons ───────────────────────────────────────────────
         JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 0, 15));
