@@ -28,7 +28,7 @@ public class MasterUI {
     private JTextField endDate = new JTextField(10);
 
     public MasterUI(UserSession userSession, ReservationController reservationController,
-                            SearchController searchController, UserController userController) {
+                    SearchController searchController, UserController userController) {
         this.userSession = userSession;
         this.reservationController = reservationController;
         this.searchController = searchController;

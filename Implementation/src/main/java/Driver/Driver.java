@@ -19,6 +19,14 @@ import Controllers.*;
 import javax.swing.*;
 import java.nio.file.Path;
 
+import Controllers.*;
+import Domain.People.*;
+import TechnicalServices.Persistence.SchemaInstaller;
+
+import javax.swing.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+
 public class Driver {
 
     public static void main(String[] args) {
