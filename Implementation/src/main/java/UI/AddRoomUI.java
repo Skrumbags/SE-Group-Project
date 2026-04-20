@@ -32,7 +32,7 @@ public class AddRoomUI extends JPanel {
         add(new JLabel("Smoking:"));      add(smokingCheck);
         add(new JLabel("Daily Rate:"));   add(dailyRateField);
 
-        JButton addButton = new JButton("Add Room");
+        JButton addButton = new JButton("Save room to catalog");
         add(backButton);
         backButton.setVisible(false);
         add(addButton);

@@ -3,6 +3,7 @@ package Controllers;
 import Domain.People.*;
 import TechnicalServices.Persistence.SchemaInstaller;
 import TechnicalServices.Persistence.SqliteUserPersistence;
+import TechnicalServices.Security.PasswordHasher;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,13 +49,14 @@ public class UserController {
             return Result.INVALID_INPUT;
         }
 
-        Guest guest = new Guest(username, password, name, phone, email);
+        String encoded = PasswordHasher.hashPassword(password);
+        Guest guest = new Guest(username, encoded, name, phone, email);
         if (!userCatalog.addUser(guest)) {
             return Result.DUPLICATE_USERNAME;
         }
         if (userDb != null) {
             try {
-                long id = userDb.saveGuest(username, password, name, phone, email);
+                long id = userDb.saveGuest(username, encoded, name, phone, email);
                 guest.setDatabaseId(id);
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to save user to database", e);
@@ -68,13 +70,14 @@ public class UserController {
             return Result.INVALID_INPUT;
         }
 
-        Clerk clerk = new Clerk(employeeId, username, password, name);
+        String encoded = PasswordHasher.hashPassword(password);
+        Clerk clerk = new Clerk(employeeId, username, encoded, name);
         if (!userCatalog.addUser(clerk)) {
             return Result.DUPLICATE_USERNAME;
         }
         if (userDb != null) {
             try {
-                long id = userDb.saveStaff(username, password, name, employeeId, "CLERK");
+                long id = userDb.saveStaff(username, encoded, name, employeeId, "CLERK");
                 clerk.setDatabaseId(id);
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to save user to database", e);
@@ -88,19 +91,28 @@ public class UserController {
             return Result.INVALID_INPUT;
         }
 
-        Admin admin = new Admin(employeeId, username, password, name);
+        String encoded = PasswordHasher.hashPassword(password);
+        Admin admin = new Admin(employeeId, username, encoded, name);
         if (!userCatalog.addUser(admin)) {
             return Result.DUPLICATE_USERNAME;
         }
         if (userDb != null) {
             try {
-                long id = userDb.saveStaff(username, password, name, employeeId, "ADMIN");
+                long id = userDb.saveStaff(username, encoded, name, employeeId, "ADMIN");
                 admin.setDatabaseId(id);
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to save user to database", e);
             }
         }
         return Result.SUCCESS;
+    }
+
+    /**
+     * Same backing store used for registration; {@link LoginController} uses this to re-encode
+     * legacy passwords after a successful login. Null when this controller is catalog-only.
+     */
+    public SqliteUserPersistence getSqliteUserPersistence() {
+        return userDb;
     }
 
     public User findByUsername(String username) {

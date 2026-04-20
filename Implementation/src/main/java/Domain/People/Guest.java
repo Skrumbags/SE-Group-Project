@@ -26,6 +26,11 @@ public class Guest extends User {
         this.email = email;
     }
 
+    @Override
+    public UserRole getRole() {
+        return UserRole.GUEST;
+    }
+
     // ── Getters ───────────────────────────────────────────────────────────────
 
     public String getPhone() { return phone; }

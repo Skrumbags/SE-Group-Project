@@ -3,7 +3,6 @@ package TechnicalServices.Persistence;
 import Domain.Reservations.Reservation;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
-import Domain.Services.ReservationService;
 import Domain.Shared.DateRange;
 
 import java.io.IOException;
@@ -187,6 +186,83 @@ public class SqliteReservationPersistence {
             ps.setString(9, r.getMaskedCardNumber());
             ps.setDouble(10, r.getTotalCost());
             ps.executeUpdate();
+        }
+    }
+
+    public void deleteByConfirmationNumber(String confirmationNumber) throws SQLException {
+        String sql = "DELETE FROM Reservations WHERE confirmation_number = ?";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, confirmationNumber);
+            int n = ps.executeUpdate();
+            if (n != 1) {
+                throw new SQLException("DELETE Reservations expected 1 row for " + confirmationNumber + ", got " + n);
+            }
+        }
+    }
+
+    public void updateReservation(String confirmationNumber, int roomNumber, LocalDate checkIn,
+                                  LocalDate checkOut, String guestName, String maskedCardNumber,
+                                  double totalCost, Long guestUserId) throws SQLException {
+        String sql = """
+                UPDATE Reservations SET
+                    room_number = ?,
+                    check_in_date = ?,
+                    check_out_date = ?,
+                    guest_name = ?,
+                    masked_card_number = ?,
+                    total_cost = ?,
+                    guest_id = ?
+                WHERE confirmation_number = ?
+                """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
+            ps.setString(2, checkIn.toString());
+            ps.setString(3, checkOut.toString());
+            ps.setString(4, guestName);
+            ps.setString(5, maskedCardNumber);
+            ps.setDouble(6, totalCost);
+            if (guestUserId != null) {
+                ps.setLong(7, guestUserId);
+            } else {
+                ps.setNull(7, Types.INTEGER);
+            }
+            ps.setString(8, confirmationNumber);
+            int n = ps.executeUpdate();
+            if (n != 1) {
+                throw new SQLException("UPDATE Reservations expected 1 row, got " + n);
+            }
+        }
+    }
+
+    /**
+     * True if another reservation (not {@code excludeConfirmation}) overlaps the room and dates.
+     */
+    public boolean existsOverlapExcluding(int roomNumber, DateRange candidate, String excludeConfirmation)
+            throws SQLException {
+        if (excludeConfirmation == null) {
+            return existsOverlap(roomNumber, candidate);
+        }
+        LocalDate cIn = candidate.getCheckInDate();
+        LocalDate cOut = candidate.getCheckOutDate();
+        String sql = """
+                SELECT 1 FROM Reservations
+                WHERE room_number = ?
+                  AND check_in_date < ?
+                  AND check_out_date > ?
+                  AND confirmation_number <> ?
+                LIMIT 1
+                """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomNumber);
+            ps.setString(2, cOut.toString());
+            ps.setString(3, cIn.toString());
+            ps.setString(4, excludeConfirmation);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         }
     }
 }
