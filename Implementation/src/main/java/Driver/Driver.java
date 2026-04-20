@@ -29,7 +29,10 @@ public class Driver {
         ReservationService resService = new ReservationService(db);
         UserController userController = new UserController(userCatalog, db);
 
+        // Session starts anonymous; users sign in only through the UI.
         UserSession userSession = new UserSession();
+        userSession.logout();
+
         if (userCatalog.findByUsername("Matt") == null) {
             userController.addGuest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu");
         }
@@ -38,7 +41,10 @@ public class Driver {
                 new ReservationController(roomService, resService, userSession, userController);
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController);
-        SwingUtilities.invokeLater(ui::buildAndShowUI);
+        SwingUtilities.invokeLater(() -> {
+            userSession.logout();
+            ui.buildAndShowUI();
+        });
 
         /*RoomCatalog rooms = new RoomCatalog();
         RoomService service = new RoomService(rooms);

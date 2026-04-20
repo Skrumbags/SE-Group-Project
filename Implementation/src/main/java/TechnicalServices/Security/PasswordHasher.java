@@ -32,10 +32,14 @@ public final class PasswordHasher {
         }
         byte[] salt = new byte[SALT_BYTES];
         RNG.nextBytes(salt);
-        byte[] hash = pbkdf2(plainText.toCharArray(), salt);
-        return PREFIX + ITERATIONS + ":"
-                + Base64.getEncoder().encodeToString(salt) + ":"
-                + Base64.getEncoder().encodeToString(hash);
+        try {
+            byte[] hash = pbkdf2(plainText.toCharArray(), salt);
+            return PREFIX + ITERATIONS + ":"
+                    + Base64.getEncoder().encodeToString(salt) + ":"
+                    + Base64.getEncoder().encodeToString(hash);
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Password hashing failed", e);
+        }
     }
 
     /**
