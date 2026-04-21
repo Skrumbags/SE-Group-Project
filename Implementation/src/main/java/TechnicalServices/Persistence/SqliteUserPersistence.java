@@ -96,6 +96,20 @@ public class SqliteUserPersistence {
         throw new SQLException("INSERT Users did not return generated id");
     }
 
+    /** Persists a new encoded password for an existing user row. */
+    public void updatePassword(long userId, String encodedPassword) throws SQLException {
+        String sql = "UPDATE Users SET password = ? WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, encodedPassword);
+            ps.setLong(2, userId);
+            int n = ps.executeUpdate();
+            if (n != 1) {
+                throw new SQLException("UPDATE Users expected 1 row, got " + n);
+            }
+        }
+    }
+
     public List<User> findAll() throws SQLException {
         String sql = """
                 SELECT id, username, password, name, phone, email, role, employee_id

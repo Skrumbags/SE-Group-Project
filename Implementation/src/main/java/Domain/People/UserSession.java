@@ -33,6 +33,13 @@ public class UserSession {
     /**
      * @throws IllegalStateException if no user is logged in or the user is not a {@link Guest}
      */
+    public User requireLoggedIn() {
+        if (currentUser == null) {
+            throw new IllegalStateException("You must be logged in.");
+        }
+        return currentUser;
+    }
+
     public Guest requireLoggedInGuest() {
         if (currentUser == null) {
             throw new IllegalStateException("You must be logged in to reserve a room.");
@@ -41,5 +48,15 @@ public class UserSession {
             throw new IllegalStateException("Only guests can complete a room reservation.");
         }
         return (Guest) currentUser;
+    }
+
+    public Clerk requireLoggedInClerk() {
+        if (currentUser == null) {
+            throw new IllegalStateException("You must be logged in.");
+        }
+        if (!(currentUser instanceof Clerk)) {
+            throw new IllegalStateException("Clerk access required.");
+        }
+        return (Clerk) currentUser;
     }
 }

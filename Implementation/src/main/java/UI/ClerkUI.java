@@ -1,62 +1,36 @@
 package UI;
 
-import Controllers.UserController;
 import Domain.People.User;
+import Domain.People.UserSession;
 
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Clerk landing: shortcuts to add rooms and full reservation CRUD.
+ */
 public class ClerkUI extends JPanel {
-    public ClerkUI(UserController usercontroller, User user) {
 
-        // Sections off information in grids
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+    public ClerkUI(UserSession userSession, Runnable onAddRoom, Runnable onReservations, Runnable onHome) {
+        setLayout(new BorderLayout(16, 16));
+        setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
 
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        gbc.insets = new Insets(10, 10, 10, 10);
+        User u = userSession.getCurrentUser();
+        String greeting = (u != null) ? ("Clerk — " + u.getName()) : "Clerk";
+        JLabel title = new JLabel(greeting, SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 22));
+        add(title, BorderLayout.NORTH);
 
-        // Top-Left: Name and Welcome
-        String greeting = (user != null) ? ("Hello, " + user.getName() + "!") : "Hello!";
-        JLabel nameLabel = new JLabel(greeting);
-        nameLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.NONE; // reset for each component
-        gbc.weightx = 1;
-
-        panel.add(nameLabel, gbc);
-
-        // Top-Right: Image
-        ImageIcon icon = new ImageIcon("employee.png");
-        Image img = icon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
-        JLabel imageLabel = new JLabel(new ImageIcon(img));
-
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.EAST;
-        gbc.fill = GridBagConstraints.NONE; // reset for each component
-        gbc.weightx = 1;
-
-        panel.add(imageLabel, gbc);
-
-        // Bottom-Right: Buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(new JButton("Personal Information"));
-        buttonPanel.add(new JButton("Modify Rooms"));
-        buttonPanel.add(new JButton("Reservation Actions"));
-
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.SOUTHEAST;
-        gbc.fill = GridBagConstraints.NONE; // reset for each component
-        gbc.weightx = 1;
-
-        panel.add(buttonPanel, gbc);
-
-        // Add everything together:
-        add(panel, BorderLayout.CENTER);
+        JPanel actions = new JPanel(new GridLayout(3, 1, 0, 12));
+        JButton addRoom = new JButton("Add room");
+        addRoom.addActionListener(e -> onAddRoom.run());
+        JButton reservations = new JButton("Reservations (list, create, edit, delete)");
+        reservations.addActionListener(e -> onReservations.run());
+        JButton home = new JButton("Back to home");
+        home.addActionListener(e -> onHome.run());
+        actions.add(addRoom);
+        actions.add(reservations);
+        actions.add(home);
+        add(actions, BorderLayout.CENTER);
     }
 }

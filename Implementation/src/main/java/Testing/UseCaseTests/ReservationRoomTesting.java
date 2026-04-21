@@ -20,6 +20,8 @@ import Testing.UseCases.ReserveRoom;
 import UI.ReserveRoomUI;
 import Domain.Shared.DateRange;
 import Controllers.ReservationController;
+import Controllers.UserController;
+import Domain.People.UserCatalog;
 import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
 
@@ -113,8 +115,9 @@ public class ReservationRoomTesting {
         }
 
         ReservationService reservationService = new ReservationService(db);
+        UserController userController = new UserController(new UserCatalog());
         ReservationController reservationController =
-                new ReservationController(roomService, reservationService, userSession);
+                new ReservationController(roomService, reservationService, userSession, userController);
 
         ReserveRoomUI ui = new ReserveRoomUI(userSession, reservationController);
 

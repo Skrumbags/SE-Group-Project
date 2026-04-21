@@ -9,6 +9,8 @@
 
 package Domain.People;
 
+import TechnicalServices.Security.PasswordHasher;
+
 /**
  * Abstract base for all people who interact with the hotel system.
  * Concrete subtypes: {@link Guest}, {@link Admin}, {@link Clerk}.
@@ -46,9 +48,18 @@ public abstract class User {
         this.databaseId = databaseId;
     }
 
-    /** Validates a login attempt without ever exposing the raw password. */
+    public abstract UserRole getRole();
+
+    /**
+     * True when the stored credential is not in {@link PasswordHasher} format (legacy plaintext in DB).
+     */
+    public boolean usesLegacyPlaintextCredential() {
+        return !PasswordHasher.isEncodedForm(this.password);
+    }
+
+    /** Validates a login attempt; stored value is an encoded hash or legacy plaintext. */
     public boolean checkPassword(String candidate) {
-        return this.password.equals(candidate);
+        return PasswordHasher.verify(candidate, this.password);
     }
 
     public void setName(String name) {

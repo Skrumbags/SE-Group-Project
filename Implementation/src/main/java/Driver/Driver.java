@@ -29,21 +29,22 @@ public class Driver {
         ReservationService resService = new ReservationService(db);
         UserController userController = new UserController(userCatalog, db);
 
+        // Session starts anonymous; users sign in only through the UI.
         UserSession userSession = new UserSession();
+        userSession.logout();
+
         if (userCatalog.findByUsername("Matt") == null) {
             userController.addGuest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu");
         }
-        // Session starts signed out; user signs in via LoginUI.
         SearchController searchController = new SearchController(roomService, resService);
-        ReservationController reservationController = new ReservationController(roomService, resService, userSession);
-
-        //ADDITIONS FOR TESTING LOGIN
-        userCatalog.addUser(new Admin(1, "admin", "admin123", "Admin User"));
-        userCatalog.addUser(new Clerk(2, "clerk", "clerk123", "Clerk User"));
-        userCatalog.addUser(new Guest("guest", "guest123", "Guest User", "555-1234", "guest@email.com"));
+        ReservationController reservationController =
+                new ReservationController(roomService, resService, userSession, userController);
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController);
-        SwingUtilities.invokeLater(ui::buildAndShowUI);
+        SwingUtilities.invokeLater(() -> {
+            userSession.logout();
+            ui.buildAndShowUI();
+        });
 
         /*RoomCatalog rooms = new RoomCatalog();
         RoomService service = new RoomService(rooms);

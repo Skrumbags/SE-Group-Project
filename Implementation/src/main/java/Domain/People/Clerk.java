@@ -24,6 +24,11 @@ public class Clerk extends User {
         this.employeeId = employeeId;
     }
 
+    @Override
+    public UserRole getRole() {
+        return UserRole.CLERK;
+    }
+
     public int getEmployeeId() { return employeeId; }
 
     @Override
