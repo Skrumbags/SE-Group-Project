@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,6 +27,11 @@ import java.util.Optional;
 public class SqliteReservationPersistence {
 
     private final Path dbPath;
+
+    /** SQLite JDBC does not support {@code setObject(..., JDBCType.DATE)}; use {@link Date} instead. */
+    private static void setDateParam(PreparedStatement ps, int index, LocalDate d) throws SQLException {
+        ps.setDate(index, Date.valueOf(d));
+    }
 
     public SqliteReservationPersistence(Path dbPath) {
         this.dbPath = dbPath;
@@ -82,8 +88,8 @@ public class SqliteReservationPersistence {
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, roomNumber);
-            ps.setString(2, cOut.toString());
-            ps.setString(3, cIn.toString());
+            setDateParam(ps, 2, cOut);
+            setDateParam(ps, 3, cIn);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -132,8 +138,8 @@ public class SqliteReservationPersistence {
     private static Reservation mapReservationRow(ResultSet rs) throws SQLException {
         String conf = rs.getString("confirmation_number");
         int roomNum = rs.getInt("room_number");
-        LocalDate in = LocalDate.parse(rs.getString("check_in_date"));
-        LocalDate out = LocalDate.parse(rs.getString("check_out_date"));
+        LocalDate in = readDateColumn(rs, "check_in_date");
+        LocalDate out = readDateColumn(rs, "check_out_date");
         DateRange range = new DateRange(in, out);
         Room room = placeholderRoom(roomNum);
         Long guestId = null;
@@ -150,6 +156,22 @@ public class SqliteReservationPersistence {
                 rs.getDouble("total_cost"),
                 guestId
         );
+    }
+
+    /**
+     * Reads a calendar date: JDBC {@link ResultSet#getDate} matches how we bind with {@link #setDateParam}.
+     * Falls back to ISO-8601 text only for older rows stored as plain strings.
+     */
+    private static LocalDate readDateColumn(ResultSet rs, String column) throws SQLException {
+        Date jdbc = rs.getDate(column);
+        if (jdbc != null && !rs.wasNull()) {
+            return jdbc.toLocalDate();
+        }
+        String text = rs.getString(column);
+        if (text != null && !text.isBlank()) {
+            return LocalDate.parse(text.trim());
+        }
+        throw new SQLException("Expected non-null date in column " + column);
     }
 
     private static Room placeholderRoom(int roomNumber) {
@@ -173,10 +195,10 @@ public class SqliteReservationPersistence {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, r.getConfirmationNumber());
             ps.setInt(2, r.getRoom().getRoomNumber());
-            ps.setString(3, r.getDateRange().getCheckInDate().toString());
-            ps.setString(4, r.getDateRange().getCheckOutDate().toString());
+            setDateParam(ps, 3, r.getDateRange().getCheckInDate());
+            setDateParam(ps, 4, r.getDateRange().getCheckOutDate());
             ps.setInt(5, 1);
-            ps.setString(6, LocalDate.now().toString());
+            setDateParam(ps, 6, LocalDate.now());
             if (r.getGuestUserId() != null) {
                 ps.setLong(7, r.getGuestUserId());
             } else {
@@ -218,8 +240,8 @@ public class SqliteReservationPersistence {
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, roomNumber);
-            ps.setString(2, checkIn.toString());
-            ps.setString(3, checkOut.toString());
+            setDateParam(ps, 2, checkIn);
+            setDateParam(ps, 3, checkOut);
             ps.setString(4, guestName);
             ps.setString(5, maskedCardNumber);
             ps.setDouble(6, totalCost);
@@ -257,8 +279,8 @@ public class SqliteReservationPersistence {
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, roomNumber);
-            ps.setString(2, cOut.toString());
-            ps.setString(3, cIn.toString());
+            setDateParam(ps, 2, cOut);
+            setDateParam(ps, 3, cIn);
             ps.setString(4, excludeConfirmation);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();

@@ -177,8 +177,8 @@ public class ClerkReservationsUI extends JPanel {
         confirmationField.setText(r.getConfirmationNumber());
         confirmationField.setEditable(false);
         roomCombo.setSelectedItem(r.getRoom().getRoomNumber());
-        setDateField(checkInField, r.getDateRange().getCheckInDate().toString());
-        setDateField(checkOutField, r.getDateRange().getCheckOutDate().toString());
+        setDateField(checkInField, r.getDateRange().getCheckInDate());
+        setDateField(checkOutField, r.getDateRange().getCheckOutDate());
         guestNameField.setText(r.getGuestName());
         creditCardField.setText("");
         guestUsernameField.setText("");
@@ -339,8 +339,8 @@ public class ClerkReservationsUI extends JPanel {
         });
     }
 
-    private static void setDateField(JTextField field, String isoDate) {
-        field.setText(isoDate);
+    private static void setDateField(JTextField field, LocalDate date) {
+        field.setText(date.toString());
         field.setForeground(UIManager.getColor("TextField.foreground"));
     }
 
