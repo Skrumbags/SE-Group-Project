@@ -84,7 +84,7 @@ public class LoginUI extends JPanel {
             }
         });
 
-        JButton createUser = new JButton("Create guest account");
+        JButton createUser = new JButton("Create account");
         createUser.addActionListener(e -> onCreateGuestAccount.run());
         gbc.gridx = 0;
         gbc.gridy = 4;

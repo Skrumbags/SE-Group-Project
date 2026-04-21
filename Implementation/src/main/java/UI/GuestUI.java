@@ -22,11 +22,14 @@ public class GuestUI extends JPanel {
         JLabel nameLabel = new JLabel(greeting);
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
 
+        int row = 0;
         gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridy = row++;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 1;
+        gbc.weighty = 0;
 
         panel.add(nameLabel, gbc);
 
@@ -35,16 +38,13 @@ public class GuestUI extends JPanel {
             Image img = icon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
             JLabel imageLabel = new JLabel(new ImageIcon(img));
 
-            gbc.gridx = 1;
-            gbc.gridy = 0;
-            gbc.anchor = GridBagConstraints.EAST;
-            gbc.fill = GridBagConstraints.NONE;
-            gbc.weightx = 1;
+            gbc.gridy = row++;
+            gbc.anchor = GridBagConstraints.CENTER;
 
             panel.add(imageLabel, gbc);
         }
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
         JButton reservationsBtn = new JButton("Reservations");
         reservationsBtn.addActionListener(e -> onReservations.run());
         JButton searchBtn = new JButton("Search available rooms");
@@ -52,11 +52,10 @@ public class GuestUI extends JPanel {
         buttonPanel.add(searchBtn);
         buttonPanel.add(reservationsBtn);
 
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.SOUTHEAST;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 1;
+        gbc.weighty = 1;
 
         panel.add(buttonPanel, gbc);
 
