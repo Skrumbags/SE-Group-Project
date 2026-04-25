@@ -10,7 +10,12 @@ import java.awt.*;
  */
 public class GuestUI extends JPanel {
 
-    public GuestUI(User user, Runnable onReservations, Runnable onSearchRooms) {
+    public GuestUI(User user,
+                   Runnable onReservations,
+                   Runnable onSearchRooms,
+                   Runnable onShopBrowse,
+                   Runnable onShopCart,
+                   Runnable onCombinedBill) {
 
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -49,8 +54,17 @@ public class GuestUI extends JPanel {
         reservationsBtn.addActionListener(e -> onReservations.run());
         JButton searchBtn = new JButton("Search available rooms");
         searchBtn.addActionListener(e -> onSearchRooms.run());
+        JButton shopBtn = new JButton("Shop products");
+        shopBtn.addActionListener(e -> onShopBrowse.run());
+        JButton cartBtn = new JButton("View cart");
+        cartBtn.addActionListener(e -> onShopCart.run());
+        JButton billBtn = new JButton("View combined bill");
+        billBtn.addActionListener(e -> onCombinedBill.run());
         buttonPanel.add(searchBtn);
         buttonPanel.add(reservationsBtn);
+        buttonPanel.add(shopBtn);
+        buttonPanel.add(cartBtn);
+        buttonPanel.add(billBtn);
 
         gbc.gridy = row;
         gbc.anchor = GridBagConstraints.CENTER;

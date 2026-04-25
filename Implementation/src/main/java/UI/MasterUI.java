@@ -7,6 +7,7 @@ import Controllers.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Objects;
 
 /**
  * Composes role-specific shells: anonymous users see {@link PublicUI}; guests, clerks, and admins
@@ -18,13 +19,16 @@ public class MasterUI {
     private final ReservationController reservationController;
     private final SearchController searchController;
     private final UserController userController;
+    private final ShoppingController shoppingController;
 
     public MasterUI(UserSession userSession, ReservationController reservationController,
-                    SearchController searchController, UserController userController) {
+                    SearchController searchController, UserController userController,
+                    ShoppingController shoppingController) {
         this.userSession = userSession;
         this.reservationController = reservationController;
         this.searchController = searchController;
         this.userController = userController;
+        this.shoppingController = shoppingController;
     }
 
     public void buildAndShowUI() {
@@ -56,6 +60,26 @@ public class MasterUI {
 
         ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, reservationController);
         reservePanel.setBackAction(e -> guestLayout.show(guestShell, "HOME"), "← Back to guest home");
+
+        CombinedBillUI billPanel = new CombinedBillUI(
+                shoppingController,
+                () -> guestLayout.show(guestShell, "HOME")
+        );
+
+        CartUI cartPanel = new CartUI(
+                shoppingController,
+                () -> guestLayout.show(guestShell, "HOME"),
+                () -> guestLayout.show(guestShell, "SHOP")
+        );
+
+        ProductCatalogUI shopPanel = new ProductCatalogUI(
+                shoppingController,
+                () -> guestLayout.show(guestShell, "HOME"),
+                () -> {
+                    cartPanel.refresh();
+                    guestLayout.show(guestShell, "CART");
+                }
+        );
 
         Runnable openClerkAddRoomDialog = () -> {
             if (!(userSession.getCurrentUser() instanceof Clerk)) {
@@ -110,7 +134,19 @@ public class MasterUI {
                             reservePanel.refreshRoomOptions();
                             guestLayout.show(guestShell, "RESERVE");
                         },
-                        () -> guestLayout.show(guestShell, "SEARCH")
+                        () -> guestLayout.show(guestShell, "SEARCH"),
+                        () -> {
+                            shopPanel.refresh();
+                            guestLayout.show(guestShell, "SHOP");
+                        },
+                        () -> {
+                            cartPanel.refresh();
+                            guestLayout.show(guestShell, "CART");
+                        },
+                        () -> {
+                            billPanel.refresh();
+                            guestLayout.show(guestShell, "BILL");
+                        }
                 );
                 guestHomeWrap.add(guestHome, BorderLayout.CENTER);
             }
@@ -130,6 +166,9 @@ public class MasterUI {
         guestShell.add(guestHomeWrap, "HOME");
         guestShell.add(guestSearch, "SEARCH");
         guestShell.add(reservePanel, "RESERVE");
+        guestShell.add(shopPanel, "SHOP");
+        guestShell.add(cartPanel, "CART");
+        guestShell.add(billPanel, "BILL");
 
         adminShell.add(adminPanel, "ADMIN");
         adminShell.add(addClerkAdmin, "ADD_USER_CLERK");

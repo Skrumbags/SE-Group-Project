@@ -13,6 +13,9 @@ import Domain.People.*;
 import Domain.Rooms.RoomCatalog;
 import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
+import Domain.Services.ShoppingService;
+import TechnicalServices.Persistence.SqliteReservationPersistence;
+import TechnicalServices.Persistence.SqliteStorePersistence;
 import UI.MasterUI;
 import Controllers.*;
 
@@ -28,6 +31,10 @@ public class Driver {
         RoomService roomService = new RoomService(roomCatalog, db);
         ReservationService resService = new ReservationService(db);
         UserController userController = new UserController(userCatalog, db);
+        SqliteStorePersistence storeDb = new SqliteStorePersistence(db);
+        SqliteReservationPersistence reservationDb = new SqliteReservationPersistence(db);
+        reservationDb.initialize();
+        ShoppingService shoppingService = new ShoppingService(storeDb, reservationDb, 0.0825);
 
         // Session starts anonymous; users sign in only through the UI.
         UserSession userSession = new UserSession();
@@ -39,8 +46,12 @@ public class Driver {
         SearchController searchController = new SearchController(roomService, resService);
         ReservationController reservationController =
                 new ReservationController(roomService, resService, userSession, userController);
+        ShoppingController shoppingController =
+                new ShoppingController(shoppingService, resService, userSession);
 
-        MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController);
+        seedStoreProductsIfEmpty(storeDb);
+
+        MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
             userSession.logout();
             ui.buildAndShowUI();
@@ -57,5 +68,20 @@ public class Driver {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);*/
 
+    }
+
+    private static void seedStoreProductsIfEmpty(SqliteStorePersistence storeDb) {
+        try {
+            storeDb.initialize();
+            if (storeDb.countProducts() > 0) {
+                return;
+            }
+            storeDb.createProduct("TSHIRT-001", "Hotel T-Shirt", "Soft cotton tee with logo", 19.99, 25, true);
+            storeDb.createProduct("MUG-001", "Coffee Mug", "Ceramic mug", 9.99, 40, true);
+            storeDb.createProduct("SOAP-001", "Artisan Soap", "Local handmade soap bar", 6.50, 60, true);
+            storeDb.createProduct("HAT-001", "Baseball Cap", "Adjustable cap with logo", 14.00, 30, true);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to seed store products", e);
+        }
     }
 }

@@ -259,6 +259,58 @@ public class SqliteReservationPersistence {
     }
 
     /**
+     * True when the guest has a reservation that covers {@code today}: check_in_date <= today < check_out_date.
+     * Used to enforce shopping precondition: "active guest at the hotel".
+     */
+    public boolean hasActiveStay(long guestUserId, LocalDate today) throws SQLException {
+        String sql = """
+                SELECT 1
+                FROM Reservations
+                WHERE guest_id = ?
+                  AND check_in_date <= ?
+                  AND check_out_date > ?
+                LIMIT 1
+                """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, guestUserId);
+            setDateParam(ps, 2, today);
+            setDateParam(ps, 3, today);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
+     * Returns one active reservation confirmation number for {@code today}, if any.
+     * When multiple overlap, returns the latest created row by id.
+     */
+    public Optional<String> findActiveReservationConfirmation(long guestUserId, LocalDate today) throws SQLException {
+        String sql = """
+                SELECT confirmation_number
+                FROM Reservations
+                WHERE guest_id = ?
+                  AND check_in_date <= ?
+                  AND check_out_date > ?
+                ORDER BY id DESC
+                LIMIT 1
+                """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, guestUserId);
+            setDateParam(ps, 2, today);
+            setDateParam(ps, 3, today);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.ofNullable(rs.getString(1));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
      * True if another reservation (not {@code excludeConfirmation}) overlaps the room and dates.
      */
     public boolean existsOverlapExcluding(int roomNumber, DateRange candidate, String excludeConfirmation)
