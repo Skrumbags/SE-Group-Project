@@ -1,107 +1,252 @@
 package UI;
 
-import People.Guest;
-import People.User;
-import People.UserCatalog;
-import People.UserSession;
-import RoomCatalog.RoomCatalog;
-import Utility.*;
+import Domain.People.Clerk;
+import Domain.People.User;
+import Domain.People.UserSession;
+import Controllers.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
+import java.util.Objects;
 
+/**
+ * Composes role-specific shells: anonymous users see {@link PublicUI}; guests, clerks, and admins
+ * each get their own shell after login.
+ */
 public class MasterUI {
+
     private final UserSession userSession;
     private final ReservationController reservationController;
     private final SearchController searchController;
     private final UserController userController;
-    private AddUserUI addUserPanel = null;
-    private AddRoomUI addRoomPanel = null;
-    private ReserveRoomUI reservePanel = null;
+    private final ShoppingController shoppingController;
 
     public MasterUI(UserSession userSession, ReservationController reservationController,
-                            SearchController searchController, UserController userController) {
+                    SearchController searchController, UserController userController,
+                    ShoppingController shoppingController) {
         this.userSession = userSession;
         this.reservationController = reservationController;
         this.searchController = searchController;
         this.userController = userController;
+        this.shoppingController = shoppingController;
     }
 
     public void buildAndShowUI() {
 
         JFrame frame = new JFrame("Hotel Reservation App");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(600, 450);
-        frame.setLocationRelativeTo(null); // center on screen
+        frame.setSize(900, 500);
+        frame.setLocationRelativeTo(null);
 
-        // CardLayout lets us swap panels in-place without opening new windows
-        CardLayout cards = new CardLayout();
-        JPanel root = new JPanel(cards);
+        CardLayout shellLayout = new CardLayout();
+        JPanel shellRoot = new JPanel(shellLayout);
 
-        // ── Panels ────────────────────────────────────────────────────────────
-        JPanel welcomePanel = buildWelcomePanel(cards, root);
-        addUserPanel = new AddUserUI(userController);
-        addRoomPanel = new AddRoomUI(searchController.getRoomService());
-        reservePanel = new ReserveRoomUI(userSession, reservationController);
+        JLabel navUserLabel = new JLabel(" ");
+        navUserLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        JButton sessionBtn = new JButton("Logout");
+        JPanel sessionStrip = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 5));
+        sessionStrip.add(navUserLabel);
+        sessionStrip.add(sessionBtn);
+        sessionStrip.setVisible(false);
 
-        // Back Button
-        ActionListener goBack = e -> cards.show(root, "WELCOME");
-        String backMessage = "← Back to Welcome";
-        addUserPanel.setBackAction(goBack, backMessage);
-        addRoomPanel.setBackAction(goBack, backMessage);
-        reservePanel.setBackAction(goBack, backMessage);
+        CardLayout guestLayout = new CardLayout();
+        JPanel guestShell = new JPanel(guestLayout);
 
-        root.add(welcomePanel, "WELCOME");
-        root.add(addUserPanel, "ADD_USER");
-        root.add(addRoomPanel, "ADD_ROOM");
-        root.add(reservePanel, "RESERVE");
+        CardLayout clerkLayout = new CardLayout();
+        JPanel clerkShell = new JPanel(clerkLayout);
 
-        frame.add(root);
-        cards.show(root, "WELCOME");
-        frame.setVisible(true);
-    }
+        CardLayout adminLayout = new CardLayout();
+        JPanel adminShell = new JPanel(adminLayout);
 
-    /** Builds the welcome screen with three navigation buttons. */
-    private JPanel buildWelcomePanel(CardLayout cards, JPanel root) {
-        JPanel panel = new JPanel(new BorderLayout(10, 20));
-        panel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
+        ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, reservationController);
+        reservePanel.setBackAction(e -> guestLayout.show(guestShell, "HOME"), "← Back to guest home");
 
-        // ── Welcome label ────────────────────────────────────────────────────
-        JLabel welcome = new JLabel("Welcome to Hotel Reservation App", SwingConstants.CENTER);
-        welcome.setFont(new Font("SansSerif", Font.BOLD, 22));
-        panel.add(welcome, BorderLayout.NORTH);
+        CombinedBillUI billPanel = new CombinedBillUI(
+                shoppingController,
+                () -> guestLayout.show(guestShell, "HOME")
+        );
 
-        // ── Navigation buttons ───────────────────────────────────────────────
-        JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 0, 15));
+        CartUI cartPanel = new CartUI(
+                shoppingController,
+                () -> guestLayout.show(guestShell, "HOME"),
+                () -> guestLayout.show(guestShell, "SHOP")
+        );
 
-        JButton toAddUser  = new JButton("Add a User");
-        JButton toReserve  = new JButton("Reserve a Room");
-        JButton toAddRoom  = new JButton("Add a Room");
+        ProductCatalogUI shopPanel = new ProductCatalogUI(
+                shoppingController,
+                () -> guestLayout.show(guestShell, "HOME"),
+                () -> {
+                    cartPanel.refresh();
+                    guestLayout.show(guestShell, "CART");
+                }
+        );
 
-        styleNavButton(toAddUser);
-        styleNavButton(toReserve);
-        styleNavButton(toAddRoom);
+        Runnable openClerkAddRoomDialog = () -> {
+            if (!(userSession.getCurrentUser() instanceof Clerk)) {
+                JOptionPane.showMessageDialog(frame,
+                        "Only clerks can add rooms. Sign in as a clerk first.",
+                        "Add room",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            JDialog addRoomDialog = new JDialog(frame, "Add room", true);
+            AddRoomUI addRoomForm = new AddRoomUI(searchController.getRoomService());
+            addRoomForm.setBackAction(e -> addRoomDialog.dispose(), "Close");
+            addRoomDialog.setContentPane(addRoomForm);
+            addRoomDialog.pack();
+            addRoomDialog.setLocationRelativeTo(frame);
+            addRoomDialog.setVisible(true);
+        };
 
-        toAddUser.addActionListener(e -> cards.show(root, "ADD_USER"));
-        toReserve.addActionListener(e -> {
-            cards.show(root, "RESERVE");
-            reservePanel.refreshRoomOptions();
+        ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
+                userSession,
+                reservationController,
+                () -> clerkLayout.show(clerkShell, "CLERK")
+        );
+
+        JPanel adminPanel = new AdminUI(
+                userSession,
+                () -> adminLayout.show(adminShell, "ADD_USER_CLERK"),
+                () -> adminLayout.show(adminShell, "ADMIN")
+        );
+        AddCA_UI addClerkAdmin = new AddCA_UI(userController);
+        addClerkAdmin.setBackAction(e -> adminLayout.show(adminShell, "ADMIN"), "← Back to admin");
+
+        JPanel clerkPanel = new ClerkUI(
+                userSession,
+                openClerkAddRoomDialog,
+                () -> {
+                    clerkReservationsPanel.prepareShow();
+                    clerkLayout.show(clerkShell, "CLERK_RES");
+                },
+                () -> clerkLayout.show(clerkShell, "CLERK")
+        );
+
+        JPanel guestHomeWrap = new JPanel(new BorderLayout());
+
+        Runnable rebuildGuestHome = () -> {
+            guestHomeWrap.removeAll();
+            User u = userSession.getCurrentUser();
+            if (u != null) {
+                GuestUI guestHome = new GuestUI(
+                        u,
+                        () -> {
+                            reservePanel.refreshRoomOptions();
+                            guestLayout.show(guestShell, "RESERVE");
+                        },
+                        () -> guestLayout.show(guestShell, "SEARCH"),
+                        () -> {
+                            shopPanel.refresh();
+                            guestLayout.show(guestShell, "SHOP");
+                        },
+                        () -> {
+                            cartPanel.refresh();
+                            guestLayout.show(guestShell, "CART");
+                        },
+                        () -> {
+                            billPanel.refresh();
+                            guestLayout.show(guestShell, "BILL");
+                        }
+                );
+                guestHomeWrap.add(guestHome, BorderLayout.CENTER);
+            }
+            guestHomeWrap.revalidate();
+            guestHomeWrap.repaint();
+        };
+
+        JPanel guestSearch = new JPanel(new BorderLayout(8, 8));
+        guestSearch.setBorder(BorderFactory.createEmptyBorder(8, 12, 12, 12));
+        JPanel guestSearchNorth = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
+        JButton guestSearchBack = new JButton("← Back to guest home");
+        guestSearchBack.addActionListener(e -> guestLayout.show(guestShell, "HOME"));
+        guestSearchNorth.add(guestSearchBack);
+        guestSearch.add(guestSearchNorth, BorderLayout.NORTH);
+        guestSearch.add(new RoomAvailabilityPanel(searchController), BorderLayout.CENTER);
+
+        guestShell.add(guestHomeWrap, "HOME");
+        guestShell.add(guestSearch, "SEARCH");
+        guestShell.add(reservePanel, "RESERVE");
+        guestShell.add(shopPanel, "SHOP");
+        guestShell.add(cartPanel, "CART");
+        guestShell.add(billPanel, "BILL");
+
+        adminShell.add(adminPanel, "ADMIN");
+        adminShell.add(addClerkAdmin, "ADD_USER_CLERK");
+
+        clerkShell.add(clerkPanel, "CLERK");
+        clerkShell.add(clerkReservationsPanel, "CLERK_RES");
+
+        Runnable refreshSessionUi = () -> {
+            User u = userSession.getCurrentUser();
+            if (u != null) {
+                navUserLabel.setText("Signed in as " + u.getUsername() + " (" + u.getRole() + ")");
+                sessionStrip.setVisible(true);
+            } else {
+                navUserLabel.setText(" ");
+                sessionStrip.setVisible(false);
+            }
+            sessionStrip.revalidate();
+            sessionStrip.repaint();
+        };
+
+        LoginController loginController = new LoginController(
+                userController.getUserCatalog(),
+                userController.getSqliteUserPersistence());
+
+        PublicUI publicUI = new PublicUI(
+                searchController,
+                loginController,
+                userController,
+                userSession,
+                refreshSessionUi,
+                () -> {
+                    refreshSessionUi.run();
+                    adminLayout.show(adminShell, "ADMIN");
+                    shellLayout.show(shellRoot, "ADMIN");
+                },
+                () -> {
+                    refreshSessionUi.run();
+                    clerkLayout.show(clerkShell, "CLERK");
+                    shellLayout.show(shellRoot, "CLERK");
+                },
+                () -> {
+                    refreshSessionUi.run();
+                    rebuildGuestHome.run();
+                    guestLayout.show(guestShell, "HOME");
+                    shellLayout.show(shellRoot, "GUEST");
+                }
+        );
+
+        shellRoot.add(publicUI, "PUBLIC");
+        shellRoot.add(guestShell, "GUEST");
+        shellRoot.add(clerkShell, "CLERK");
+        shellRoot.add(adminShell, "ADMIN");
+
+        sessionBtn.addActionListener(e -> {
+            if (!userSession.isLoggedIn()) {
+                return;
+            }
+            int ok = JOptionPane.showConfirmDialog(
+                    frame,
+                    "Sign out?",
+                    "Logout",
+                    JOptionPane.OK_CANCEL_OPTION
+            );
+            if (ok == JOptionPane.OK_OPTION) {
+                userSession.logout();
+                refreshSessionUi.run();
+                shellLayout.show(shellRoot, "PUBLIC");
+                publicUI.showLanding();
+            }
         });
-        toAddRoom.addActionListener(e -> cards.show(root, "ADD_ROOM"));
 
-        buttonPanel.add(toAddUser);
-        buttonPanel.add(toReserve);
-        buttonPanel.add(toAddRoom);
+        frame.setLayout(new BorderLayout());
+        frame.add(sessionStrip, BorderLayout.NORTH);
+        frame.add(shellRoot, BorderLayout.CENTER);
 
-        panel.add(buttonPanel, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private void styleNavButton(JButton btn) {
-        btn.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        btn.setPreferredSize(new Dimension(0, 45));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        shellLayout.show(shellRoot, "PUBLIC");
+        publicUI.showLanding();
+        refreshSessionUi.run();
+        frame.setVisible(true);
     }
 }
