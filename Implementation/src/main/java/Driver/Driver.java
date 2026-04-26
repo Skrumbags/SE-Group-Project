@@ -29,6 +29,8 @@ import TechnicalServices.Persistence.SchemaInstaller;
 import javax.swing.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import com.formdev.flatlaf.FlatLightLaf;
+
 
 public class Driver {
 
@@ -58,12 +60,14 @@ public class Driver {
                 new ShoppingController(shoppingService, resService, userSession);
 
         seedStoreProductsIfEmpty(storeDb);
+        FlatLightLaf.setup();
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
             userSession.logout();
             ui.buildAndShowUI();
         });
+
 
         /*RoomCatalog rooms = new RoomCatalog();
         RoomService service = new RoomService(rooms);

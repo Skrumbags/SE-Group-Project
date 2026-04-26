@@ -22,12 +22,10 @@ public class MasterUI {
     private final ShoppingController shoppingController;
 
     public MasterUI(UserSession userSession, ReservationController reservationController,
-<<<<<<< HEAD
-                    SearchController searchController, UserController userController) {
-=======
-                    SearchController searchController, UserController userController,
-                    ShoppingController shoppingController) {
->>>>>>> 42f98f321ca1bb38cca5749ac2bd785c05d664a9
+                    //SearchController searchController, UserController userController) {
+//=======
+    SearchController searchController, UserController userController,
+                ShoppingController shoppingController) {
         this.userSession = userSession;
         this.reservationController = reservationController;
         this.searchController = searchController;
