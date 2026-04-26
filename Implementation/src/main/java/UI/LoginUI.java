@@ -15,18 +15,7 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class LoginUI extends JPanel {
-
-    // UI Colors!
-    private static final Color BLUE       = new Color(24, 95, 165);
-    private static final Color BLUE_DARK  = new Color(12, 68, 124);
-    private static final Color BLUE_LIGHT = new Color(230, 241, 251);
-    private static final Color BG         = new Color(247, 247, 247);
-    private static final Color CARD_BG    = Color.WHITE;
-    private static final Color BORDER     = new Color(210, 210, 210);
-    private static final Color TEXT_MAIN  = new Color(30, 30, 30);
-    private static final Color TEXT_MUTED = new Color(110, 110, 110);
-    private static final Color ERROR_RED  = new Color(180, 40, 40);
-
+    
     private final JTextField     usernameField = new JTextField(15);
     private final JPasswordField passwordField = new JPasswordField(15);
     private final JLabel         errorLabel    = new JLabel(" ");

@@ -20,6 +20,7 @@ import UI.MasterUI;
 import Controllers.*;
 
 import javax.swing.*;
+import java.awt.*;
 import java.nio.file.Path;
 
 import Controllers.*;
@@ -29,12 +30,17 @@ import TechnicalServices.Persistence.SchemaInstaller;
 import javax.swing.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import com.formdev.flatlaf.FlatLightLaf;
 
 
 public class Driver {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+
+        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel"); // for UI
+        UIManager.put("nimbusBase", new Color(24, 95, 165));
+        UIManager.put("nimbusLightBackground", Color.WHITE);
+        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel"); // Blue accent
+
         Path db = Path.of("data", "database.db");
         RoomCatalog roomCatalog = new RoomCatalog();
         UserCatalog userCatalog = new UserCatalog();
@@ -60,7 +66,6 @@ public class Driver {
                 new ShoppingController(shoppingService, resService, userSession);
 
         seedStoreProductsIfEmpty(storeDb);
-        FlatLightLaf.setup();
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
