@@ -1,61 +1,79 @@
 package UI;
 
-import Controllers.UserController;
 import Domain.People.User;
 
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * Guest landing after sign-in: shortcuts to reservations and room availability search.
+ */
 public class GuestUI extends JPanel {
 
-    public GuestUI(UserController userController, User user) {
+    public GuestUI(User user,
+                   Runnable onReservations,
+                   Runnable onSearchRooms,
+                   Runnable onShopBrowse,
+                   Runnable onShopCart,
+                   Runnable onCombinedBill) {
 
-        // Sections off information in grids
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         gbc.insets = new Insets(10, 10, 10, 10);
 
-        // Top-Left: Name and Welcome
         String greeting = (user != null) ? ("Hello, " + user.getName() + "!") : "Hello!";
         JLabel nameLabel = new JLabel(greeting);
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
 
+        int row = 0;
         gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.NONE; // reset for each component
+        gbc.gridy = row++;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 1;
+        gbc.weighty = 0;
 
         panel.add(nameLabel, gbc);
 
-        // Top-Right: Image
         ImageIcon icon = new ImageIcon("employee.png");
-        Image img = icon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
-        JLabel imageLabel = new JLabel(new ImageIcon(img));
+        if (icon.getImage() != null) {
+            Image img = icon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
+            JLabel imageLabel = new JLabel(new ImageIcon(img));
 
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.EAST;
-        gbc.fill = GridBagConstraints.NONE; // reset for each component
-        gbc.weightx = 1;
+            gbc.gridy = row++;
+            gbc.anchor = GridBagConstraints.CENTER;
 
-        panel.add(imageLabel, gbc);
+            panel.add(imageLabel, gbc);
+        }
 
-        // Bottom-Right: Buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(new JButton("Manage Users")); // add clerk
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+        JButton reservationsBtn = new JButton("Reservations");
+        reservationsBtn.addActionListener(e -> onReservations.run());
+        JButton searchBtn = new JButton("Search available rooms");
+        searchBtn.addActionListener(e -> onSearchRooms.run());
+        JButton shopBtn = new JButton("Shop products");
+        shopBtn.addActionListener(e -> onShopBrowse.run());
+        JButton cartBtn = new JButton("View cart");
+        cartBtn.addActionListener(e -> onShopCart.run());
+        JButton billBtn = new JButton("View combined bill");
+        billBtn.addActionListener(e -> onCombinedBill.run());
+        buttonPanel.add(searchBtn);
+        buttonPanel.add(reservationsBtn);
+        buttonPanel.add(shopBtn);
+        buttonPanel.add(cartBtn);
+        buttonPanel.add(billBtn);
 
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.SOUTHEAST;
-        gbc.fill = GridBagConstraints.NONE; // reset for each component
-        gbc.weightx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weighty = 1;
 
         panel.add(buttonPanel, gbc);
 
-        // Add everything together:
+        setLayout(new BorderLayout());
         add(panel, BorderLayout.CENTER);
     }
 }

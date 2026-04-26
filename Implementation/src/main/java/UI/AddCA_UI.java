@@ -36,7 +36,15 @@ public class AddCA_UI extends JPanel {
     }
 
     private void handleAddUser() {
-        int id =  Integer.parseInt(employeeID.getText());
+        int id;
+        try {
+            id = Integer.parseInt(employeeID.getText().trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Employee ID must be a whole number.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword()).trim();
         String name     = nameField.getText().trim();

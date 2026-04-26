@@ -23,4 +23,9 @@ public class UserCatalog {
     public boolean exists(String username) {
         return users.containsKey(username);
     }
+
+    /** Replaces the entry for {@code user}'s username (used after password rehash). */
+    public void replaceUser(User user) {
+        users.put(user.getUsername(), user);
+    }
 }

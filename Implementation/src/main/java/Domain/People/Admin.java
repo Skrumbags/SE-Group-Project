@@ -24,6 +24,11 @@ public class Admin extends User {
         this.employeeId = employeeId;
     }
 
+    @Override
+    public UserRole getRole() {
+        return UserRole.ADMIN;
+    }
+
     public int getEmployeeId() { return employeeId; }
 
     @Override
