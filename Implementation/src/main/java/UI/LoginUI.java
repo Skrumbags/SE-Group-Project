@@ -15,7 +15,7 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class LoginUI extends JPanel {
-    
+
     private final JTextField     usernameField = new JTextField(15);
     private final JPasswordField passwordField = new JPasswordField(15);
     private final JLabel         errorLabel    = new JLabel(" ");
