@@ -39,12 +39,19 @@ public class RoomAvailabilityPanel extends JPanel {
                 new EmptyBorder(10, 12, 10, 12)
         ));
 
-        SpinnerDateModel beginModel = new SpinnerDateModel();
+        SpinnerDateModel beginModel = new SpinnerDateModel(
+                new Date(), null, null, java.util.Calendar.DAY_OF_MONTH
+        );
+        SpinnerDateModel endModel = new SpinnerDateModel(
+                new Date(System.currentTimeMillis() + 86400000L), null, null, java.util.Calendar.DAY_OF_MONTH
+        );
+
+        //SpinnerDateModel beginModel = new SpinnerDateModel();
         JSpinner beginDate = new JSpinner(beginModel);
         beginDate.setEditor(new JSpinner.DateEditor(beginDate, "MM/dd/yyyy"));
         beginDate.setPreferredSize(new Dimension(110, 30));
 
-        SpinnerDateModel endModel = new SpinnerDateModel();
+        //SpinnerDateModel endModel = new SpinnerDateModel();
         JSpinner endDate = new JSpinner(endModel);
         endDate.setEditor(new JSpinner.DateEditor(endDate, "MM/dd/yyyy"));
         endDate.setPreferredSize(new Dimension(110, 30));
