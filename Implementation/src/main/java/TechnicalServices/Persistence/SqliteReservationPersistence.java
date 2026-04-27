@@ -16,7 +16,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -163,7 +165,7 @@ public class SqliteReservationPersistence {
      * Falls back to ISO-8601 text only for older rows stored as plain strings.
      */
     private static LocalDate readDateColumn(ResultSet rs, String column) throws SQLException {
-        Date jdbc = rs.getDate(column);
+        /*Date jdbc = rs.getDate(column);
         if (jdbc != null && !rs.wasNull()) {
             return jdbc.toLocalDate();
         }
@@ -171,7 +173,28 @@ public class SqliteReservationPersistence {
         if (text != null && !text.isBlank()) {
             return LocalDate.parse(text.trim());
         }
-        throw new SQLException("Expected non-null date in column " + column);
+        throw new SQLException("Expected non-null date in column " + column);*/
+        // Old form tries to parse milliseconds
+        String text = rs.getString(column);
+        if (text == null || text.isBlank()) {
+            throw new SQLException("Expected non-null date in column " + column);
+        }
+        text = text.trim();
+
+        // formatted date string: "2026-04-26"
+        try {
+            return LocalDate.parse(text);
+        } catch (Exception ignored) {}
+
+        // raw millisecond timestamp: "1777698000000" - if necessary
+        try {
+            long millis = Long.parseLong(text);
+            return Instant.ofEpochMilli(millis)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+        } catch (Exception ignored) {}
+
+        throw new SQLException("Unparseable date in column " + column + ": " + text);
     }
 
     private static Room placeholderRoom(int roomNumber) {
