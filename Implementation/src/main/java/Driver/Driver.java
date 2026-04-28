@@ -20,11 +20,28 @@ import UI.MasterUI;
 import Controllers.*;
 
 import javax.swing.*;
+import java.awt.*;
 import java.nio.file.Path;
+
+import Controllers.*;
+import Domain.People.*;
+import TechnicalServices.Persistence.SchemaInstaller;
+
+import javax.swing.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+
 
 public class Driver {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+
+        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel"); // for UI
+        UIManager.put("nimbusBase", new Color(24, 95, 165));
+        UIManager.put("nimbusLightBackground", Color.WHITE);
+        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel"); // Blue accent
+        UIManager.put("Panel.background", new Color(230, 241, 251));
+
         Path db = Path.of("data", "database.db");
         RoomCatalog roomCatalog = new RoomCatalog();
         UserCatalog userCatalog = new UserCatalog();
@@ -49,13 +66,12 @@ public class Driver {
         ShoppingController shoppingController =
                 new ShoppingController(shoppingService, resService, userSession);
 
-        seedStoreProductsIfEmpty(storeDb);
-
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
             userSession.logout();
             ui.buildAndShowUI();
         });
+
 
         /*RoomCatalog rooms = new RoomCatalog();
         RoomService service = new RoomService(rooms);
@@ -70,18 +86,4 @@ public class Driver {
 
     }
 
-    private static void seedStoreProductsIfEmpty(SqliteStorePersistence storeDb) {
-        try {
-            storeDb.initialize();
-            if (storeDb.countProducts() > 0) {
-                return;
-            }
-            storeDb.createProduct("TSHIRT-001", "Hotel T-Shirt", "Soft cotton tee with logo", 19.99, 25, true);
-            storeDb.createProduct("MUG-001", "Coffee Mug", "Ceramic mug", 9.99, 40, true);
-            storeDb.createProduct("SOAP-001", "Artisan Soap", "Local handmade soap bar", 6.50, 60, true);
-            storeDb.createProduct("HAT-001", "Baseball Cap", "Adjustable cap with logo", 14.00, 30, true);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to seed store products", e);
-        }
-    }
 }

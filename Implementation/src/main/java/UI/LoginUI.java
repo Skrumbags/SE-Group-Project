@@ -7,13 +7,18 @@ import Domain.People.Guest;
 import Domain.People.User;
 import Domain.People.UserSession;
 
+import Domain.People.*;
+
 import javax.swing.*;
+import javax.swing.border.*;
 import java.awt.*;
+import java.awt.event.*;
 
 public class LoginUI extends JPanel {
 
-    private final JTextField usernameField = new JTextField(15);
+    private final JTextField     usernameField = new JTextField(15);
     private final JPasswordField passwordField = new JPasswordField(15);
+    private final JLabel         errorLabel    = new JLabel(" ");
 
     public LoginUI(LoginController loginController, UserSession userSession, Runnable onSessionChanged,
                    Runnable onAdminLogin, Runnable onClerkLogin, Runnable onGuestLogin,
