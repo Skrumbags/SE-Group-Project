@@ -78,8 +78,13 @@ public class SqliteReservationPersistence {
      * {@link DateRange#overlaps(DateRange)}.
      */
     public boolean existsOverlap(int roomNumber, DateRange candidate) throws SQLException {
-        LocalDate cIn = candidate.getCheckInDate();
-        LocalDate cOut = candidate.getCheckOutDate();
+        return existsOverlap(roomNumber, candidate.getCheckInDate(), candidate.getCheckOutDate());
+    }
+
+    /**
+     * Same overlap rule as {@link DateRange#overlaps(DateRange)}: {@code [cIn, cOut)} vs stored ranges.
+     */
+    public boolean existsOverlap(int roomNumber, LocalDate cIn, LocalDate cOut) throws SQLException {
         String sql = """
                 SELECT 1 FROM Reservations
                 WHERE room_number = ?
@@ -341,8 +346,19 @@ public class SqliteReservationPersistence {
         if (excludeConfirmation == null) {
             return existsOverlap(roomNumber, candidate);
         }
-        LocalDate cIn = candidate.getCheckInDate();
-        LocalDate cOut = candidate.getCheckOutDate();
+        return existsOverlapExcluding(
+                roomNumber,
+                candidate.getCheckInDate(),
+                candidate.getCheckOutDate(),
+                excludeConfirmation
+        );
+    }
+
+    public boolean existsOverlapExcluding(int roomNumber, LocalDate cIn, LocalDate cOut, String excludeConfirmation)
+            throws SQLException {
+        if (excludeConfirmation == null) {
+            return existsOverlap(roomNumber, cIn, cOut);
+        }
         String sql = """
                 SELECT 1 FROM Reservations
                 WHERE room_number = ?

@@ -22,6 +22,7 @@ import Domain.Rooms.Room;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,21 +50,39 @@ public class ReservationService {
     }
 
     public List<Room> calculateOverlap(List<Room> rooms, DateRange dateRange) {
+        return calculateOverlap(rooms, dateRange.getCheckInDate(), dateRange.getCheckOutDate());
+    }
+
+    /**
+     * Rooms with no reservation overlapping {@code [startInclusive, endExclusive)}.
+     */
+    public List<Room> calculateOverlap(List<Room> rooms, LocalDate startInclusive, LocalDate endExclusive) {
         return rooms.stream()
-                .filter(r -> !isReserved(r, dateRange))
+                .filter(r -> !isReserved(r, startInclusive, endExclusive))
                 .toList();
     }
 
     public boolean isReserved(Room room, DateRange dateRange) {
-        return isReserved(room, dateRange, null);
+        return isReserved(room, dateRange.getCheckInDate(), dateRange.getCheckOutDate());
+    }
+
+    public boolean isReserved(Room room, LocalDate startInclusive, LocalDate endExclusive) {
+        return isReserved(room, startInclusive, endExclusive, null);
     }
 
     /**
      * @param excludeConfirmation when non-null, ignores that reservation (used when editing an existing row).
      */
     public boolean isReserved(Room room, DateRange dateRange, String excludeConfirmation) {
+        return isReserved(room, dateRange.getCheckInDate(), dateRange.getCheckOutDate(), excludeConfirmation);
+    }
+
+    public boolean isReserved(Room room, LocalDate startInclusive, LocalDate endExclusive, String excludeConfirmation) {
         try {
-            return sqlite.existsOverlapExcluding(room.getRoomNumber(), dateRange, excludeConfirmation);
+            if (excludeConfirmation == null) {
+                return sqlite.existsOverlap(room.getRoomNumber(), startInclusive, endExclusive);
+            }
+            return sqlite.existsOverlapExcluding(room.getRoomNumber(), startInclusive, endExclusive, excludeConfirmation);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to check reservation overlap", e);
         }

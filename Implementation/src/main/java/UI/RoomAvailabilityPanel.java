@@ -9,9 +9,13 @@ import Domain.Shared.DateRange;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class RoomAvailabilityPanel extends JPanel {
 
@@ -25,8 +29,16 @@ public class RoomAvailabilityPanel extends JPanel {
     private static final Color GREEN_LIGHT= new Color(220, 245, 220);
 
     private final JPanel resultsGrid = new JPanel();
+    private final SearchController searchController;
+    private final BiConsumer<Room, DateRange> onRoomStayChosen;
 
-    public RoomAvailabilityPanel(SearchController searchController) {
+    private LocalDate lastSearchStartInclusive;
+    private LocalDate lastSearchEndExclusive;
+
+    public RoomAvailabilityPanel(SearchController searchController,
+                                   BiConsumer<Room, DateRange> onRoomStayChosen) {
+        this.searchController = searchController;
+        this.onRoomStayChosen = onRoomStayChosen;
         setLayout(new BorderLayout(0, 0));
         setBackground(new Color(245, 247, 250));
         resultsGrid.setOpaque(true);
@@ -110,12 +122,29 @@ public class RoomAvailabilityPanel extends JPanel {
                 LocalDate end   = en.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
                 int numGuests   = Integer.parseInt(guestsField.getText().trim());
 
+                long span = ChronoUnit.DAYS.between(start, end);
+                if (span <= 0) {
+                    JOptionPane.showMessageDialog(this, "\"To\" must be after \"From\".",
+                            "Invalid date range", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (span > SearchCriteria.MAX_SEARCH_SPAN_DAYS) {
+                    JOptionPane.showMessageDialog(this,
+                            "From and To can be at most " + SearchCriteria.MAX_SEARCH_SPAN_DAYS
+                                    + " days apart (1 year).",
+                            "Invalid date range", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 RoomType roomType  = new RoomType(
                         (RoomType.FloorType) floorBox.getSelectedItem(),
                         (RoomType.BedType)   bedBox.getSelectedItem()
                 );
-                SearchCriteria criteria = new SearchCriteria(new DateRange(start, end), roomType, numGuests);
+                SearchCriteria criteria = new SearchCriteria(start, end, roomType, numGuests);
                 List<Room> results = searchController.searchRooms(criteria);
+
+                lastSearchStartInclusive = start;
+                lastSearchEndExclusive = end;
 
                 resultsGrid.removeAll();
                 if (results.isEmpty()) {
@@ -129,6 +158,9 @@ public class RoomAvailabilityPanel extends JPanel {
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Please enter a valid number of guests.",
                         "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(),
+                        "Invalid Dates", JOptionPane.ERROR_MESSAGE);
             } catch (RuntimeException ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(),
                         "Invalid Dates", JOptionPane.ERROR_MESSAGE);
@@ -144,8 +176,8 @@ public class RoomAvailabilityPanel extends JPanel {
                 new LineBorder(BORDER_C, 1, true),
                 new EmptyBorder(14, 16, 14, 16)
         ));
-        card.setPreferredSize(new Dimension(195, 155));
-        card.setMaximumSize(new Dimension(195, 155));
+        card.setPreferredSize(new Dimension(195, 175));
+        card.setMaximumSize(new Dimension(195, 175));
 
         // room number badge
         JLabel badge = new JLabel("Room " + r.getRoomNumber());
@@ -183,6 +215,35 @@ public class RoomAvailabilityPanel extends JPanel {
         card.add(rateLabel);
         card.add(Box.createVerticalStrut(8));
         card.add(smokingPill);
+        card.add(Box.createVerticalStrut(6));
+        JLabel clickHint = new JLabel("Click for calendar");
+        clickHint.setFont(new Font("Segoe UI", Font.ITALIC, 10));
+        clickHint.setForeground(BLUE);
+        clickHint.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(clickHint);
+
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (lastSearchStartInclusive == null || lastSearchEndExclusive == null) {
+                    JOptionPane.showMessageDialog(RoomAvailabilityPanel.this,
+                            "Run a room search first to set your date range.",
+                            "Search required",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+                Window w = SwingUtilities.getWindowAncestor(RoomAvailabilityPanel.this);
+                new RoomCalendarAvailabilityDialog(
+                        w,
+                        searchController,
+                        r,
+                        lastSearchStartInclusive,
+                        lastSearchEndExclusive,
+                        onRoomStayChosen
+                ).setVisible(true);
+            }
+        });
 
         return card;
     }

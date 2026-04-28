@@ -17,7 +17,7 @@ public class ProductCatalogUI extends JPanel {
     private List<Item> lastItems = List.of();
 
     private final DefaultTableModel model = new DefaultTableModel(
-            new Object[]{"SKU", "Name", "Price", "Stock"},
+            new Object[]{"Item ID", "Name", "Price"},
             0
     ) {
         @Override
@@ -28,6 +28,7 @@ public class ProductCatalogUI extends JPanel {
 
     private final JTable table = new JTable(model);
     private final JTextField qtyField = new JTextField("1", 5);
+    private final JLabel emptyStateLabel = new JLabel(" ");
 
     public ProductCatalogUI(ShoppingController shoppingController, Runnable onBackHome, Runnable onOpenCart) {
         this.shoppingController = shoppingController;
@@ -37,7 +38,7 @@ public class ProductCatalogUI extends JPanel {
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 12, 12, 12));
 
-        JLabel title = new JLabel("Shop Products");
+        JLabel title = new JLabel("Shopping cart");
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
 
         JButton backBtn = new JButton("Home");
@@ -58,9 +59,11 @@ public class ProductCatalogUI extends JPanel {
         JButton addBtn = new JButton("Add to cart");
         addBtn.addActionListener(e -> addSelectedToCart());
         JPanel south = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
+        emptyStateLabel.setForeground(Color.DARK_GRAY);
         south.add(new JLabel("Qty:"));
         south.add(qtyField);
         south.add(addBtn);
+        south.add(emptyStateLabel);
         add(south, BorderLayout.SOUTH);
     }
 
@@ -70,12 +73,14 @@ public class ProductCatalogUI extends JPanel {
         lastItems = items;
         for (Item it : items) {
             model.addRow(new Object[]{
-                    it.getSku(),
+                    it.getId(),
                     it.getName(),
-                    String.format("$%.2f", it.getUnitPrice()),
-                    it.getStockQty()
+                    String.format("$%.2f", it.getUnitPrice())
             });
         }
+        emptyStateLabel.setText(items.isEmpty()
+                ? "No items yet. Add products to the database to display them here."
+                : " ");
     }
 
     private void addSelectedToCart() {
