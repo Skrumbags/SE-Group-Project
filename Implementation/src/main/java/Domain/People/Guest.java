@@ -13,7 +13,7 @@ import java.util.Objects;
 
 /**
  * A hotel guest who can make reservations.
- * Registered via {@link Controllers.UserController} and stored in {@link UserCatalog}.
+ * Registered via {@link Controllers.UserController} and stored in {@link Domain.Services.UserService}.
  */
 public class Guest extends User {
 

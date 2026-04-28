@@ -34,12 +34,17 @@ public class ReservationController {
                                           String creditCardNumber, DateRange dateRange) {
         return reservationService.buildPreview(
                 userSession,
-                roomService.getCatalog(),
+                roomService.getRooms(),
                 roomNumber,
                 guestName,
                 creditCardNumber,
                 dateRange
         );
+    }
+
+    public String resolveUsernameById(Long userId) {
+        User u = userController.findById(userId);
+        return (u != null) ? u.getUsername() : "";
     }
 
     public String confirmAndSaveReservation(ReservationSummary summary, boolean guestApproved) {
@@ -62,7 +67,7 @@ public class ReservationController {
                                                 String creditCardNumber, DateRange dateRange) {
         return reservationService.buildPreviewForClerk(
                 userSession,
-                roomService.getCatalog(),
+                roomService.getRooms(),
                 roomNumber,
                 guestName,
                 creditCardNumber,
@@ -82,7 +87,7 @@ public class ReservationController {
                                        String guestName, String creditCardNumber, Long guestUserId) {
         reservationService.updateReservationAsClerk(
                 userSession,
-                roomService.getCatalog(),
+                roomService.getRooms(),
                 confirmationNumber,
                 newRoomNumber,
                 newRange,

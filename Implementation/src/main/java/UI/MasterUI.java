@@ -195,13 +195,8 @@ public class MasterUI {
             sessionStrip.repaint();
         };
 
-        LoginController loginController = new LoginController(
-                userController.getUserCatalog(),
-                userController.getSqliteUserPersistence());
-
         PublicUI publicUI = new PublicUI(
                 searchController,
-                loginController,
                 userController,
                 userSession,
                 refreshSessionUi,

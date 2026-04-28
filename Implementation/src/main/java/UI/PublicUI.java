@@ -1,6 +1,5 @@
 package UI;
 
-import Controllers.LoginController;
 import Controllers.SearchController;
 import Controllers.UserController;
 import Domain.People.UserSession;
@@ -18,7 +17,6 @@ public class PublicUI extends JPanel {
 
     public PublicUI(
             SearchController searchController,
-            LoginController loginController,
             UserController userController,
             UserSession userSession,
             Runnable onSessionChanged,
@@ -62,7 +60,7 @@ public class PublicUI extends JPanel {
         addUserPanel.setBackAction(e -> bodyCards.show(body, "LOGIN"), "← Back to login");
 
         LoginUI loginPanel = new LoginUI(
-                loginController,
+                userController,
                 userSession,
                 onSessionChanged,
                 onAdminLogin,
