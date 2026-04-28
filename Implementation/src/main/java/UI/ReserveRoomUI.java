@@ -87,6 +87,36 @@ public class ReserveRoomUI extends JPanel {
         }
     }
 
+    /**
+     * After choosing a room and dates elsewhere (e.g. calendar search), skip manual combo/date entry.
+     */
+    public void applyPreselection(int roomNumber, LocalDate checkIn, LocalDate checkOut) {
+        currentPreview = null;
+        refreshRoomOptions();
+        boolean found = false;
+        for (int i = 0; i < roomNumberCombo.getItemCount(); i++) {
+            Integer n = roomNumberCombo.getItemAt(i);
+            if (n != null && n == roomNumber) {
+                roomNumberCombo.setSelectedIndex(i);
+                found = true;
+                break;
+            }
+        }
+        if (!found && roomNumberCombo.getItemCount() > 0) {
+            roomNumberCombo.insertItemAt(roomNumber, 0);
+            roomNumberCombo.setSelectedIndex(0);
+        }
+
+        Color fg = UIManager.getColor("TextField.foreground");
+        if (fg == null) {
+            fg = Color.BLACK;
+        }
+        checkInDateField.setText(checkIn.toString());
+        checkInDateField.setForeground(fg);
+        checkOutDateField.setText(checkOut.toString());
+        checkOutDateField.setForeground(fg);
+    }
+
     private void handlePreview() {
         try {
             int roomNumber = (Integer) roomNumberCombo.getSelectedItem();

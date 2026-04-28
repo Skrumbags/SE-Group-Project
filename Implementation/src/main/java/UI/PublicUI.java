@@ -46,7 +46,17 @@ public class PublicUI extends JPanel {
         tag.setFont(new Font("SansSerif", Font.PLAIN, 15));
         northStack.add(tag);
         landing.add(northStack, BorderLayout.NORTH);
-        landing.add(new RoomAvailabilityPanel(searchController), BorderLayout.SOUTH);
+        landing.add(new RoomAvailabilityPanel(searchController, (room, range) -> {
+            userSession.setPendingReservation(new UserSession.PendingReservation(
+                    room.getRoomNumber(), range.getCheckInDate(), range.getCheckOutDate()));
+            JOptionPane.showMessageDialog(this,
+                    "Sign in or create a guest account to complete your reservation.\n\nRoom "
+                            + room.getRoomNumber() + ": "
+                            + range.getCheckInDate() + " → " + range.getCheckOutDate() + " (checkout morning).",
+                    "Sign in to reserve",
+                    JOptionPane.INFORMATION_MESSAGE);
+            bodyCards.show(body, "LOGIN");
+        }), BorderLayout.SOUTH);
 
         AddUserUI addUserPanel = new AddUserUI(userController);
         addUserPanel.setBackAction(e -> bodyCards.show(body, "LOGIN"), "← Back to login");
