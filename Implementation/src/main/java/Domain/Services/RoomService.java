@@ -32,7 +32,7 @@ public class RoomService {
     }
 
     /**
-     * Applies schema (if needed), loads {@link Rooms} from SQLite into the catalog, and persists new adds.
+     * Applies schema (if needed), loads {@link Room} from SQLite into the catalog, and persists new adds.
      * Use the same {@code dbPath} as {@link ReservationService} so rooms and reservations share one database.
      */
     public RoomService(Path sqliteDatabaseFile) {
