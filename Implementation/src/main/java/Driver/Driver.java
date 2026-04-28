@@ -10,10 +10,10 @@ package Driver;
 
 // Imports for Room + RoomType
 import Domain.People.*;
-import Domain.Rooms.RoomCatalog;
 import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
 import Domain.Services.ShoppingService;
+import Domain.Services.UserService;
 import TechnicalServices.Persistence.SqliteReservationPersistence;
 import TechnicalServices.Persistence.SqliteStorePersistence;
 import UI.MasterUI;
@@ -43,11 +43,10 @@ public class Driver {
         UIManager.put("Panel.background", new Color(230, 241, 251));
 
         Path db = Path.of("data", "database.db");
-        RoomCatalog roomCatalog = new RoomCatalog();
-        UserCatalog userCatalog = new UserCatalog();
-        RoomService roomService = new RoomService(roomCatalog, db);
+        RoomService roomService = new RoomService(db);
         ReservationService resService = new ReservationService(db);
-        UserController userController = new UserController(userCatalog, db);
+        UserService userService = new UserService(db);
+        UserController userController = new UserController(userService);
         SqliteStorePersistence storeDb = new SqliteStorePersistence(db);
         SqliteReservationPersistence reservationDb = new SqliteReservationPersistence(db);
         reservationDb.initialize();
@@ -57,7 +56,7 @@ public class Driver {
         UserSession userSession = new UserSession();
         userSession.logout();
 
-        if (userCatalog.findByUsername("Matt") == null) {
+        if (userController.findByUsername("Matt") == null) {
             userController.addGuest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu");
         }
         SearchController searchController = new SearchController(roomService, resService);

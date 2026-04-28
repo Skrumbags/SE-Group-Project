@@ -1,18 +1,14 @@
 package UI;
 
-import Controllers.LoginController;
+import Controllers.UserController;
 import Domain.People.Admin;
 import Domain.People.Clerk;
 import Domain.People.Guest;
 import Domain.People.User;
 import Domain.People.UserSession;
 
-import Domain.People.*;
-
 import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
-import java.awt.event.*;
 
 public class LoginUI extends JPanel {
 
@@ -20,7 +16,7 @@ public class LoginUI extends JPanel {
     private final JPasswordField passwordField = new JPasswordField(15);
     private final JLabel         errorLabel    = new JLabel(" ");
 
-    public LoginUI(LoginController loginController, UserSession userSession, Runnable onSessionChanged,
+    public LoginUI(UserController userController, UserSession userSession, Runnable onSessionChanged,
                    Runnable onAdminLogin, Runnable onClerkLogin, Runnable onGuestLogin,
                    Runnable onCreateGuestAccount) {
         setLayout(new GridBagLayout());
@@ -66,7 +62,7 @@ public class LoginUI extends JPanel {
             String username = usernameField.getText().trim();
             String password = new String(passwordField.getPassword());
 
-            User user = loginController.login(username, password);
+            User user = userController.login(username, password);
 
             if (user == null) {
                 JOptionPane.showMessageDialog(this,
