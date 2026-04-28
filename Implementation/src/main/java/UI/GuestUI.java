@@ -54,7 +54,7 @@ public class GuestUI extends JPanel {
         reservationsBtn.addActionListener(e -> onReservations.run());
         JButton searchBtn = new JButton("Search available rooms");
         searchBtn.addActionListener(e -> onSearchRooms.run());
-        JButton shopBtn = new JButton("Shop products");
+        JButton shopBtn = new JButton("Shopping cart");
         shopBtn.addActionListener(e -> onShopBrowse.run());
         JButton cartBtn = new JButton("View cart");
         cartBtn.addActionListener(e -> onShopCart.run());

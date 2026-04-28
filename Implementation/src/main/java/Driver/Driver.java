@@ -66,8 +66,6 @@ public class Driver {
         ShoppingController shoppingController =
                 new ShoppingController(shoppingService, resService, userSession);
 
-        seedStoreProductsIfEmpty(storeDb);
-
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
             userSession.logout();
@@ -88,18 +86,4 @@ public class Driver {
 
     }
 
-    private static void seedStoreProductsIfEmpty(SqliteStorePersistence storeDb) {
-        try {
-            storeDb.initialize();
-            if (storeDb.countProducts() > 0) {
-                return;
-            }
-            storeDb.createProduct("TSHIRT-001", "Hotel T-Shirt", "Soft cotton tee with logo", 19.99, 25, true);
-            storeDb.createProduct("MUG-001", "Coffee Mug", "Ceramic mug", 9.99, 40, true);
-            storeDb.createProduct("SOAP-001", "Artisan Soap", "Local handmade soap bar", 6.50, 60, true);
-            storeDb.createProduct("HAT-001", "Baseball Cap", "Adjustable cap with logo", 14.00, 30, true);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to seed store products", e);
-        }
-    }
 }
