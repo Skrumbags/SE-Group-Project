@@ -149,9 +149,9 @@ public class ReservationService {
 
         long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
         double totalCost = nights * room.getMaxDailyRate();
-        String masked = BookingValidation.maskCardNumber(creditCardNumber);
+        String cardNumber = BookingValidation.maskCardNumber(creditCardNumber);
 
-        return new ReservationSummary(room, dateRange, guestName, masked, totalCost, (int) nights);
+        return new ReservationSummary(room, dateRange, guestName, cardNumber, totalCost, (int) nights);
     }
 
     /**
@@ -178,7 +178,7 @@ public class ReservationService {
                 room,
                 range,
                 summary.getGuestName(),
-                summary.getMaskedCardNumber(),
+                summary.getCardNumber(),
                 summary.getTotalCost(),
                 guestDbId
         );
@@ -219,9 +219,9 @@ public class ReservationService {
 
         long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
         double totalCost = nights * room.getMaxDailyRate();
-        String masked = BookingValidation.maskCardNumber(creditCardNumber);
+        String cardNumber = BookingValidation.maskCardNumber(creditCardNumber);
 
-        return new ReservationSummary(room, dateRange, guestName, masked, totalCost, (int) nights);
+        return new ReservationSummary(room, dateRange, guestName, cardNumber, totalCost, (int) nights);
     }
 
     /**
@@ -246,7 +246,7 @@ public class ReservationService {
                 room,
                 range,
                 summary.getGuestName(),
-                summary.getMaskedCardNumber(),
+                summary.getCardNumber(),
                 summary.getTotalCost(),
                 guestUserId
         );
@@ -292,15 +292,15 @@ public class ReservationService {
             throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
         }
 
-        String masked;
+        String cardNumber;
         if (creditCardNumber == null || creditCardNumber.isBlank()) {
-            masked = existingRow.get().getMaskedCardNumber();
+            cardNumber = existingRow.get().getCardNumber();
         } else {
             err = BookingValidation.validateCreditCard(creditCardNumber);
             if (err != null) {
                 throw new IllegalArgumentException(err);
             }
-            masked = BookingValidation.maskCardNumber(creditCardNumber);
+            cardNumber = BookingValidation.maskCardNumber(creditCardNumber);
         }
 
         Room room = rooms.stream()
@@ -327,7 +327,7 @@ public class ReservationService {
                     newRange.getCheckInDate(),
                     newRange.getCheckOutDate(),
                     guestName.trim(),
-                    masked,
+                    cardNumber,
                     totalCost,
                     guestUserId
             );

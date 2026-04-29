@@ -16,16 +16,16 @@ public final class ReservationSummary {
     private final Room room;
     private final DateRange dateRange;
     private final String guestName;
-    private final String maskedCardNumber;
+    private final String cardNumber;
     private final double totalCost;
     private final int numberOfNights;
 
     public ReservationSummary(Room room, DateRange dateRange, String guestName,
-                              String maskedCardNumber, double totalCost, int numberOfNights) {
+                              String cardNumber, double totalCost, int numberOfNights) {
         this.room = room;
         this.dateRange = dateRange;
         this.guestName = guestName.trim();
-        this.maskedCardNumber = maskedCardNumber;
+        this.cardNumber = cardNumber;
         this.totalCost = totalCost;
         this.numberOfNights = numberOfNights;
     }
@@ -42,8 +42,8 @@ public final class ReservationSummary {
         return guestName;
     }
 
-    public String getMaskedCardNumber() {
-        return maskedCardNumber;
+    public String getCardNumber() {
+        return cardNumber;
     }
 
     public double getTotalCost() {
@@ -60,6 +60,6 @@ public final class ReservationSummary {
                 + " | " + numberOfNights + " night(s)"
                 + " | Total: $" + String.format("%.2f", totalCost)
                 + " | Guest: " + guestName
-                + " | Card: " + maskedCardNumber;
+                + " | Card: " + cardNumber;
     }
 }

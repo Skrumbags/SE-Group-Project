@@ -71,7 +71,7 @@ public class ReservationRoomTesting {
         assertTrue(preview.getRoom().equals(room), "Preview should use the selected room.");
         assertTrue(preview.getNumberOfNights() == 3, "Preview should calculate number of nights.");
         assertTrue(preview.getTotalCost() == 360.00, "Preview total cost should be 3 * 120.00.");
-        assertTrue("**** **** **** 1111".equals(preview.getMaskedCardNumber()), "Preview should mask card.");
+        assertTrue("4111111111111111".equals(preview.getCardNumber()), "Preview should store full card number.");
 
         String confirmationNumber = reserveRoom.confirmAndSave(preview, true);
         assertTrue(confirmationNumber.startsWith("CONF-"), "Confirmation number should be generated.");

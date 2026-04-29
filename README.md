@@ -46,6 +46,7 @@ Swing components in `UI/` call methods on `Controllers/*`. Controllers are thin:
 Schema lives in `Implementation/src/main/resources/schema.sql` and is applied through `SchemaInstaller` when connections are opened.
 
 - **Reservations** store room charges as written at confirm time; we do **not** rewrite reservation totals when someone buys from the store.
+- **Payment cards (project-only)**: for this class project we persist the **full credit card number** (digits only) with the reservation so clerk workflows can edit/review it later. **This is not acceptable for a real application**—production systems should never store PAN in plaintext, and should instead use a payment processor + tokenization (store only a token + last4/brand).
 - **Purchases** are their own rows (`Purchases`, `PurchaseItems`) keyed by **guest user id**, optionally recording which reservation confirmation was active at checkout for traceability.
 - **Combined bill** is therefore a **read-time aggregation**: `ShoppingService.buildCombinedBill` sums reservation costs and purchase totals for the logged-in guest and wraps them in `Domain.Shared.CombinedBill` for the UI. That keeps two bounded contexts (stay ledger vs store ledger) from corrupting each other while still presenting one number to the guest.
 

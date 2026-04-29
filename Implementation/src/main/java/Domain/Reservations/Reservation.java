@@ -22,31 +22,31 @@ public class Reservation {
     private final Room room;
     private final DateRange dateRange;
     private String guestName;
-    private String maskedCardNumber;
+    private String cardNumber;
     private final double totalCost;
     /** {@link User#getDatabaseId()} for the guest, when known. */
     private final Long guestUserId;
     private final LocalDate createdDate;
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
-                       String guestName, String maskedCardNumber, double totalCost, Long guestUserId) {
+                       String guestName, String cardNumber, double totalCost, Long guestUserId) {
         this.confirmationNumber = confirmationNumber;
         this.room = room;
         this.dateRange = dateRange;
         this.guestName = guestName;
-        this.maskedCardNumber = maskedCardNumber;
+        this.cardNumber = cardNumber;
         this.totalCost = totalCost;
         this.guestUserId = guestUserId;
         this.createdDate = LocalDate.now();
     }
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
-                       String guestName, String maskedCardNumber, double totalCost, Long guestUserId, LocalDate createdDate) {
+                       String guestName, String cardNumber, double totalCost, Long guestUserId, LocalDate createdDate) {
         this.confirmationNumber = confirmationNumber;
         this.room = room;
         this.dateRange = dateRange;
         this.guestName = guestName;
-        this.maskedCardNumber = maskedCardNumber;
+        this.cardNumber = cardNumber;
         this.totalCost = totalCost;
         this.guestUserId = guestUserId;
         this.createdDate = createdDate;
@@ -68,8 +68,8 @@ public class Reservation {
         return guestName;
     }
 
-    public String getMaskedCardNumber() {
-        return maskedCardNumber;
+    public String getCardNumber() {
+        return cardNumber;
     }
 
     public double getTotalCost() {
@@ -91,15 +91,15 @@ public class Reservation {
     }
 
     public void updatePersonalDetails(String newName, String newCard) {
-        String masked = null;
+        String nextCardNumber = null;
         if (newCard != null && !newCard.isBlank()) {
             String err = BookingValidation.validateCreditCard(newCard);
             if (err != null) {
                 throw new IllegalArgumentException(err);
             }
-            masked = BookingValidation.maskCardNumber(newCard);
+            nextCardNumber = BookingValidation.maskCardNumber(newCard);
         }
         if (newName != null && !newName.isBlank()) this.guestName = newName;
-        if (masked != null && !masked.isBlank()) this.maskedCardNumber = masked;
+        if (nextCardNumber != null && !nextCardNumber.isBlank()) this.cardNumber = nextCardNumber;
     }
 }

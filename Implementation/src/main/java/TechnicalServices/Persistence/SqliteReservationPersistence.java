@@ -108,7 +108,7 @@ public class SqliteReservationPersistence {
     public List<Reservation> findAll() throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_id, guest_name, masked_card_number, total_cost, created_date
+                       guest_id, guest_name, card_number, total_cost, created_date
                 FROM Reservations
                 ORDER BY id
                 """;
@@ -127,7 +127,7 @@ public class SqliteReservationPersistence {
     public Optional<Reservation> findByConfirmationNumber(String confirmationNumber) throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_id, guest_name, masked_card_number, total_cost, created_date
+                       guest_id, guest_name, card_number, total_cost, created_date
                 FROM Reservations
                 WHERE confirmation_number = ?
                 """;
@@ -161,7 +161,7 @@ public class SqliteReservationPersistence {
                 room,
                 range,
                 rs.getString("guest_name"),
-                rs.getString("masked_card_number"),
+                rs.getString("card_number"),
                 rs.getDouble("total_cost"),
                 guestId,
                 createdDate
@@ -219,7 +219,7 @@ public class SqliteReservationPersistence {
         String sql = """
                 INSERT INTO Reservations (
                     confirmation_number, room_number, check_in_date, check_out_date,
-                    total_guests, created_date, guest_id, guest_name, masked_card_number, total_cost
+                    total_guests, created_date, guest_id, guest_name, card_number, total_cost
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
@@ -236,7 +236,7 @@ public class SqliteReservationPersistence {
                 ps.setNull(7, Types.INTEGER);
             }
             ps.setString(8, r.getGuestName());
-            ps.setString(9, r.getMaskedCardNumber());
+            ps.setString(9, r.getCardNumber());
             ps.setDouble(10, r.getTotalCost());
             ps.executeUpdate();
         }
@@ -255,7 +255,7 @@ public class SqliteReservationPersistence {
     }
 
     public void updateReservation(String confirmationNumber, int roomNumber, LocalDate checkIn,
-                                  LocalDate checkOut, String guestName, String maskedCardNumber,
+                                  LocalDate checkOut, String guestName, String cardNumber,
                                   double totalCost, Long guestUserId) throws SQLException {
         String sql = """
                 UPDATE Reservations SET
@@ -263,7 +263,7 @@ public class SqliteReservationPersistence {
                     check_in_date = ?,
                     check_out_date = ?,
                     guest_name = ?,
-                    masked_card_number = ?,
+                    card_number = ?,
                     total_cost = ?,
                     guest_id = ?
                 WHERE confirmation_number = ?
@@ -274,7 +274,7 @@ public class SqliteReservationPersistence {
             setDateParam(ps, 2, checkIn);
             setDateParam(ps, 3, checkOut);
             ps.setString(4, guestName);
-            ps.setString(5, maskedCardNumber);
+            ps.setString(5, cardNumber);
             ps.setDouble(6, totalCost);
             if (guestUserId != null) {
                 ps.setLong(7, guestUserId);
@@ -386,15 +386,14 @@ public class SqliteReservationPersistence {
         String sql = """
             UPDATE Reservations SET
                 guest_name = ?,
-                masked_card_number = ?,
-                address = ?
+                card_number = ?
             WHERE confirmation_number = ?
             """;
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, r.getGuestName());
-            ps.setString(2, r.getMaskedCardNumber());
-            ps.setString(4, r.getConfirmationNumber());
+            ps.setString(2, r.getCardNumber());
+            ps.setString(3, r.getConfirmationNumber());
 
             int n = ps.executeUpdate();
             if (n != 1) {
