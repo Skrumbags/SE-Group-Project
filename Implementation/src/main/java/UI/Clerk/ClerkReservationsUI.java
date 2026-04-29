@@ -8,6 +8,8 @@ import Domain.Rooms.Room;
 import Domain.Shared.DateRange;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -25,8 +27,12 @@ public class ClerkReservationsUI extends JPanel {
     private final ReservationController reservationController;
     private final Runnable onBack;
 
+    private final JTextField searchField = new JTextField(18);
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
     private final JList<String> reservationList = new JList<>(listModel);
+    /** Full list from the controller (unfiltered). */
+    private final List<Reservation> allRows = new ArrayList<>();
+    /** Rows currently displayed in the list (filtered). */
     private final List<Reservation> rowCache = new ArrayList<>();
 
     private final JTextField confirmationField = new JTextField(18);
@@ -56,8 +62,11 @@ public class ClerkReservationsUI extends JPanel {
             }
         });
 
-        JPanel north = new JPanel(new BorderLayout(4, 4));
-        north.add(new JLabel("All reservations (select a row to edit or delete):"), BorderLayout.NORTH);
+        JPanel north = new JPanel(new BorderLayout(6, 6));
+        JPanel northTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        northTop.add(new JLabel("Search (guest name or confirmation #):"));
+        northTop.add(searchField);
+        north.add(northTop, BorderLayout.NORTH);
         north.add(new JScrollPane(reservationList), BorderLayout.CENTER);
 
         JPanel form = new JPanel(new GridBagLayout());
@@ -134,23 +143,51 @@ public class ClerkReservationsUI extends JPanel {
         add(north, BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
 
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            private void changed() { applyFilter(); }
+            @Override public void insertUpdate(DocumentEvent e) { changed(); }
+            @Override public void removeUpdate(DocumentEvent e) { changed(); }
+            @Override public void changedUpdate(DocumentEvent e) { changed(); }
+        });
+
         refreshRoomCombo();
         refreshList();
     }
 
     public void refreshList() {
-        rowCache.clear();
-        rowCache.addAll(reservationController.listReservations());
-        listModel.clear();
-        for (Reservation r : rowCache) {
-            listModel.addElement(formatRow(r));
-        }
+        allRows.clear();
+        allRows.addAll(reservationController.listReservations());
+        applyFilter();
     }
 
     /** Call before showing this panel so room numbers and rows match the database. */
     public void prepareShow() {
         refreshRoomCombo();
         refreshList();
+    }
+
+    private void applyFilter() {
+        String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
+
+        rowCache.clear();
+        listModel.clear();
+
+        for (Reservation r : allRows) {
+            String conf = r.getConfirmationNumber() == null ? "" : r.getConfirmationNumber();
+            String guest = r.getGuestName() == null ? "" : r.getGuestName();
+            String hay = (conf + " " + guest).toLowerCase();
+            if (q.isBlank() || hay.contains(q)) {
+                rowCache.add(r);
+                listModel.addElement(formatRow(r));
+            }
+        }
+
+        if (!rowCache.isEmpty()) {
+            reservationList.setSelectedIndex(0);
+        } else {
+            reservationList.clearSelection();
+            currentPreview = null;
+        }
     }
 
     private void refreshRoomCombo() {
