@@ -77,11 +77,45 @@ public class RoomService {
         if (room == null || rooms.contains(room)) {
             return false;
         }
+        rooms.add(room);
         if (roomDb != null) {
             try {
                 roomDb.save(room);
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to save room to database", e);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Updates an existing room in the catalog and, when DB-backed, persists it to SQLite.
+     *
+     * @return true when the room existed and was updated; false when not found
+     */
+    public boolean updateRoom(Room updated) {
+        if (updated == null) {
+            return false;
+        }
+        Room existing = findRoom(updated.getRoomNumber());
+        if (existing == null) {
+            return false;
+        }
+
+        existing.setSmoking(updated.isSmoking());
+        existing.setAvailability(updated.isAvailability());
+        existing.setRoomType(updated.getRoomType());
+        try {
+            existing.setMaxDailyRate(updated.getMaxDailyRate());
+        } catch (Room.InvalidMaxDailyRate e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+
+        if (roomDb != null) {
+            try {
+                roomDb.save(existing);
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to save room update to database", e);
             }
         }
         return true;
