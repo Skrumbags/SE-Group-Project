@@ -4,6 +4,7 @@ import Domain.People.Clerk;
 import Domain.People.User;
 import Domain.People.UserSession;
 import Controllers.*;
+import Domain.Services.UserService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -100,10 +101,18 @@ public class MasterUI {
             addRoomDialog.setVisible(true);
         };
 
+        UserService userService = userController.getUserService();
+
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
                 userSession,
                 reservationController,
                 () -> clerkLayout.show(clerkShell, "CLERK")
+        );
+
+        UpdateGuestPanel updateGuestPanel = new UpdateGuestPanel(
+                userSession,
+                userService,
+                () -> guestLayout.show(guestShell, "GUEST_HOME")
         );
 
         JPanel adminPanel = new AdminUI(
@@ -148,6 +157,10 @@ public class MasterUI {
                         () -> {
                             billPanel.refresh();
                             guestLayout.show(guestShell, "BILL");
+                        },
+                        () -> {
+                            updateGuestPanel.refresh();
+                            guestLayout.show(guestShell, "UPDATE_GUEST");
                         }
                 );
                 guestHomeWrap.add(guestHome, BorderLayout.CENTER);

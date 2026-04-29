@@ -15,7 +15,8 @@ public class GuestUI extends JPanel {
                    Runnable onSearchRooms,
                    Runnable onShopBrowse,
                    Runnable onShopCart,
-                   Runnable onCombinedBill) {
+                   Runnable onCombinedBill,
+                   Runnable updateGuestPanel) {
 
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -60,13 +61,17 @@ public class GuestUI extends JPanel {
         cartBtn.addActionListener(e -> onShopCart.run());
         JButton billBtn = new JButton("View combined bill");
         billBtn.addActionListener(e -> onCombinedBill.run());
+        JButton editProfile = new JButton("Edit profile");
+        int finalRow = row;
+        editProfile.addActionListener(e -> { updateGuestPanel.run();});
         buttonPanel.add(searchBtn);
         buttonPanel.add(reservationsBtn);
         buttonPanel.add(shopBtn);
         buttonPanel.add(cartBtn);
         buttonPanel.add(billBtn);
+        buttonPanel.add(editProfile);
 
-        gbc.gridy = row;
+        gbc.gridy = finalRow;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weighty = 1;
