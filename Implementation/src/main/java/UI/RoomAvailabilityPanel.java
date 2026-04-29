@@ -34,7 +34,6 @@ public class RoomAvailabilityPanel extends JPanel {
     private final BiConsumer<Room, DateRange> onRoomStayChosen;
 
     private LocalDate lastSearchStartInclusive;
-    private LocalDate lastSearchEndExclusive;
 
     private static final DateTimeFormatter BAR_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
@@ -141,7 +140,6 @@ public class RoomAvailabilityPanel extends JPanel {
                 List<Room> results = searchController.searchRooms(criteria);
 
                 lastSearchStartInclusive = start;
-                lastSearchEndExclusive = end;
 
                 resultsGrid.removeAll();
                 if (results.isEmpty()) {
@@ -226,20 +224,15 @@ public class RoomAvailabilityPanel extends JPanel {
         card.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (lastSearchStartInclusive == null || lastSearchEndExclusive == null) {
-                    JOptionPane.showMessageDialog(RoomAvailabilityPanel.this,
-                            "Run a room search first to set your date range.",
-                            "Search required",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    return;
-                }
                 Window w = SwingUtilities.getWindowAncestor(RoomAvailabilityPanel.this);
+                LocalDate calendarMonthHint = lastSearchStartInclusive != null
+                        ? lastSearchStartInclusive
+                        : LocalDate.now();
                 new RoomCalendarAvailabilityDialog(
                         w,
                         searchController,
                         r,
-                        lastSearchStartInclusive,
-                        lastSearchEndExclusive,
+                        calendarMonthHint,
                         onRoomStayChosen
                 ).setVisible(true);
             }
