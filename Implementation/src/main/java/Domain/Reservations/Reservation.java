@@ -23,6 +23,7 @@ public class Reservation {
     private DateRange dateRange;
     private String guestName;
     private String cardNumber;
+    private boolean active;
     private double baseCost;
     private double extraFee;
     /** {@link User#getDatabaseId()} for the guest, when known. */
@@ -36,6 +37,7 @@ public class Reservation {
         this.dateRange = dateRange;
         this.guestName = guestName;
         this.cardNumber = cardNumber;
+        this.active = false;
         this.baseCost = baseCost;
         this.guestUserId = guestUserId;
         this.createdDate = LocalDate.now();
@@ -44,11 +46,18 @@ public class Reservation {
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
                        String guestName, String cardNumber, double baseCost, Long guestUserId, LocalDate createdDate) {
+        this(confirmationNumber, room, dateRange, guestName, cardNumber, baseCost, guestUserId, createdDate, false);
+    }
+
+    public Reservation(String confirmationNumber, Room room, DateRange dateRange,
+                       String guestName, String cardNumber, double baseCost, Long guestUserId, LocalDate createdDate,
+                       boolean active) {
         this.confirmationNumber = confirmationNumber;
         this.room = room;
         this.dateRange = dateRange;
         this.guestName = guestName;
         this.cardNumber = cardNumber;
+        this.active = active;
         this.baseCost = baseCost;
         this.guestUserId = guestUserId;
         this.createdDate = createdDate;
@@ -73,6 +82,14 @@ public class Reservation {
 
     public String getCardNumber() {
         return cardNumber;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public double getTotalCost() {

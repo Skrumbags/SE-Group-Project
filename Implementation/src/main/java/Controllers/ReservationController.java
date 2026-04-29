@@ -97,6 +97,14 @@ public class ReservationController {
         );
     }
 
+    public void clerkCheckIn(String confirmationNumber) {
+        reservationService.checkInReservation(userSession, confirmationNumber);
+    }
+
+    public void clerkCheckOut(String confirmationNumber) {
+        reservationService.checkOutReservation(userSession, confirmationNumber);
+    }
+
     /**
      * When non-blank, resolves a registered {@link Guest} id to store on the reservation; otherwise null.
      */

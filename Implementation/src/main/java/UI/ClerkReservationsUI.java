@@ -36,6 +36,7 @@ public class ClerkReservationsUI extends JPanel {
     private final JTextField guestNameField = new JTextField(18);
     private final JTextField creditCardField = new JTextField(18);
     private final JTextField guestUsernameField = new JTextField(14);
+    // Check-in/out is handled on the clerk home screen (separate flow).
 
     private ReservationSummary currentPreview;
 
@@ -98,7 +99,6 @@ public class ClerkReservationsUI extends JPanel {
         form.add(new JLabel("Guest username (optional, link to account):"), gbc);
         gbc.gridx = 1;
         form.add(guestUsernameField, gbc);
-
         installDatePlaceholder(checkInField);
         installDatePlaceholder(checkOutField);
 
@@ -165,7 +165,8 @@ public class ClerkReservationsUI extends JPanel {
                 + " | Room " + r.getRoom().getRoomNumber()
                 + " | " + r.getDateRange().getCheckInDate()
                 + " → " + r.getDateRange().getCheckOutDate()
-                + " | " + r.getGuestName();
+                + " | " + r.getGuestName()
+                + (r.isActive() ? " | ACTIVE" : "");
     }
 
     private void fillFromSelection() {
