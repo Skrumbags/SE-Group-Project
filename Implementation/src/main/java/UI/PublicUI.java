@@ -3,6 +3,7 @@ package UI;
 import Controllers.SearchController;
 import Controllers.UserController;
 import Domain.People.UserSession;
+import UI.User.AddUserUI;
 
 import javax.swing.*;
 import java.awt.*;

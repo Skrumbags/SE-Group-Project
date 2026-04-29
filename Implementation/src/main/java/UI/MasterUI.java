@@ -1,5 +1,19 @@
 package UI;
 
+import UI.Admin.AdminUI;
+import UI.Admin.AddCA_UI;
+import UI.Clerk.AddRoomUI;
+import UI.Clerk.ClerkCheckInOutUI;
+import UI.Clerk.ClerkReservationsUI;
+import UI.Clerk.ClerkUI;
+import UI.Clerk.ModifyRoomUI;
+import UI.Shopping.CartUI;
+import UI.Shopping.CombinedBillUI;
+import UI.Shopping.ProductCatalogUI;
+import UI.User.GuestReservationsUI;
+import UI.User.GuestUI;
+import UI.User.ReserveRoomUI;
+import UI.User.UpdateGuestPanel;
 import Domain.People.Clerk;
 import Domain.People.User;
 import Domain.People.UserSession;
@@ -124,6 +138,23 @@ public class MasterUI {
             dlg.setVisible(true);
         };
 
+        Runnable openClerkCheckInOutDialog = () -> {
+            if (!(userSession.getCurrentUser() instanceof Clerk)) {
+                JOptionPane.showMessageDialog(frame,
+                        "Only clerks can check guests in/out. Sign in as a clerk first.",
+                        "Check in/out",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            JDialog dlg = new JDialog(frame, "Check in / Check out guest", true);
+            ClerkCheckInOutUI ui = new ClerkCheckInOutUI(userSession, reservationController);
+            ui.setBackAction(e -> dlg.dispose(), "Close");
+            dlg.setContentPane(ui);
+            dlg.pack();
+            dlg.setLocationRelativeTo(frame);
+            dlg.setVisible(true);
+        };
+
         UserService userService = userController.getUserService();
 
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
@@ -151,6 +182,7 @@ public class MasterUI {
                 userSession,
                 openClerkAddRoomDialog,
                 openClerkModifyRoomDialog,
+                openClerkCheckInOutDialog,
                 () -> {
                     clerkReservationsPanel.prepareShow();
                     clerkLayout.show(clerkShell, "CLERK_RES");

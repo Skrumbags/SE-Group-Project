@@ -1,4 +1,4 @@
-package UI;
+package UI.Clerk;
 
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;

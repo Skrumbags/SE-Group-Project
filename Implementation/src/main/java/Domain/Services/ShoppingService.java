@@ -108,12 +108,12 @@ public class ShoppingService {
         Long guestId = g.getDatabaseId();
         if (guestId == null) throw new IllegalStateException("Guest account is not persisted.");
 
-        LocalDate today = LocalDate.now();
         try {
-            if (!reservationDb.hasActiveStay(guestId, today)) {
+            // "Active stay" is determined by clerk check-in/out (Reservations.is_active).
+            if (!reservationDb.hasActiveStay(guestId, LocalDate.now())) {
                 throw new IllegalStateException("You must be an active guest (checked in for a stay) to purchase items.");
             }
-            String resConf = reservationDb.findActiveReservationConfirmation(guestId, today).orElse(null);
+            String resConf = reservationDb.findActiveReservationConfirmation(guestId, LocalDate.now()).orElse(null);
             return storeDb.purchaseItems(guestId, resConf, taxRate);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to purchase items", e);

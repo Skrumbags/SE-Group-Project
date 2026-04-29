@@ -1,4 +1,4 @@
-package UI;
+package UI.Clerk;
 
 import Domain.People.User;
 import Domain.People.UserSession;
@@ -11,7 +11,7 @@ import java.awt.*;
  */
 public class ClerkUI extends JPanel {
 
-    public ClerkUI(UserSession userSession, Runnable onAddRoom, Runnable onModifyRoom, Runnable onReservations, Runnable onHome) {
+    public ClerkUI(UserSession userSession, Runnable onAddRoom, Runnable onModifyRoom, Runnable onCheckInOut, Runnable onReservations, Runnable onHome) {
         setLayout(new BorderLayout(16, 16));
         setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
 
@@ -21,16 +21,20 @@ public class ClerkUI extends JPanel {
         title.setFont(new Font("SansSerif", Font.BOLD, 22));
         add(title, BorderLayout.NORTH);
 
-        JPanel actions = new JPanel(new GridLayout(3, 1, 0, 12));
+        JPanel actions = new JPanel(new GridLayout(4, 1, 0, 12));
         JButton addRoom = new JButton("Add room");
         addRoom.addActionListener(e -> onAddRoom.run());
         JButton modifyRoom = new JButton("Modify room information");
         modifyRoom.addActionListener(e -> onModifyRoom.run());
+        JButton checkInOut = new JButton("Check in / Check out guest");
+        checkInOut.addActionListener(e -> onCheckInOut.run());
         JButton reservations = new JButton("Reservations (list, create, edit, delete)");
         reservations.addActionListener(e -> onReservations.run());
         actions.add(addRoom);
         actions.add(modifyRoom);
+        actions.add(checkInOut);
         actions.add(reservations);
         add(actions, BorderLayout.CENTER);
     }
 }
+

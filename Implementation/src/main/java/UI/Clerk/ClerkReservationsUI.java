@@ -1,4 +1,4 @@
-package UI;
+package UI.Clerk;
 
 import Controllers.ReservationController;
 import Domain.People.UserSession;
@@ -36,6 +36,7 @@ public class ClerkReservationsUI extends JPanel {
     private final JTextField guestNameField = new JTextField(18);
     private final JTextField creditCardField = new JTextField(18);
     private final JTextField guestUsernameField = new JTextField(14);
+    // Check-in/out is handled on the clerk home screen (separate flow).
 
     private ReservationSummary currentPreview;
 
@@ -98,7 +99,6 @@ public class ClerkReservationsUI extends JPanel {
         form.add(new JLabel("Guest username (optional, link to account):"), gbc);
         gbc.gridx = 1;
         form.add(guestUsernameField, gbc);
-
         installDatePlaceholder(checkInField);
         installDatePlaceholder(checkOutField);
 
@@ -165,7 +165,8 @@ public class ClerkReservationsUI extends JPanel {
                 + " | Room " + r.getRoom().getRoomNumber()
                 + " | " + r.getDateRange().getCheckInDate()
                 + " → " + r.getDateRange().getCheckOutDate()
-                + " | " + r.getGuestName();
+                + " | " + r.getGuestName()
+                + (r.isActive() ? " | ACTIVE" : "");
     }
 
     private void fillFromSelection() {
@@ -184,7 +185,6 @@ public class ClerkReservationsUI extends JPanel {
         creditCardField.setText(r.getCardNumber());
 
         if (r.getGuestUserId() != null) {
-            // Assuming you have this method in UserController to look up by ID
             String username = reservationController.resolveUsernameById(r.getGuestUserId());
             guestUsernameField.setText(username);
         } else {
@@ -265,13 +265,11 @@ public class ClerkReservationsUI extends JPanel {
             Reservation existing = rowCache.get(idx);
             String conf = existing.getConfirmationNumber();
 
-            // 1. Get UI Values
             int newRoomNumber = (Integer) roomCombo.getSelectedItem();
             LocalDate in = LocalDate.parse(dateFieldText(checkInField));
             LocalDate out = LocalDate.parse(dateFieldText(checkOutField));
             DateRange newRange = new DateRange(in, out);
 
-            // 2. Check if Room or Dates changed. If so, use the new Itinerary logic
             boolean itineraryChanged = existing.getRoom().getRoomNumber() != newRoomNumber
                     || !existing.getDateRange().getCheckInDate().equals(in)
                     || !existing.getDateRange().getCheckOutDate().equals(out);
@@ -281,11 +279,10 @@ public class ClerkReservationsUI extends JPanel {
                 JOptionPane.showMessageDialog(this, resultMsg, "Itinerary Updated", JOptionPane.INFORMATION_MESSAGE);
             }
 
-            // 3. Update personal details (using the existing clerkUpdateReservation or your new personal details method)
             Long guestId = reservationController.resolveGuestUserIdForLink(guestUsernameField.getText());
             reservationController.clerkUpdateReservation(
                     conf,
-                    newRoomNumber, // Room/Dates might be redundant here now, but keeps your existing flow intact
+                    newRoomNumber,
                     newRange,
                     guestNameField.getText(),
                     creditCardField.getText(),
@@ -374,3 +371,4 @@ public class ClerkReservationsUI extends JPanel {
         field.setForeground(inactiveFg != null ? inactiveFg : Color.GRAY);
     }
 }
+

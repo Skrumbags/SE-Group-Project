@@ -1,4 +1,4 @@
-package UI;
+package UI.Admin;
 
 import Controllers.UserController;
 import Domain.Services.UserService;
@@ -73,3 +73,4 @@ public class AddCA_UI extends JPanel {
         backButton.setVisible(true);
     }
 }
+

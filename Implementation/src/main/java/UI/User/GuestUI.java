@@ -1,4 +1,4 @@
-package UI;
+package UI.User;
 
 import Domain.People.User;
 
@@ -65,7 +65,6 @@ public class GuestUI extends JPanel {
         JButton billBtn = new JButton("View combined bill");
         billBtn.addActionListener(e -> onCombinedBill.run());
         JButton editProfile = new JButton("Edit profile");
-        int finalRow = row;
         editProfile.addActionListener(e -> { updateGuestPanel.run();});
         JButton manageBtn = new JButton("View My Reservations");
         manageBtn.addActionListener(e -> onManageReservations.run());
@@ -81,14 +80,12 @@ public class GuestUI extends JPanel {
         buttonPanel.add(topRow);
         buttonPanel.add(bottomRow);
 
-        gbc.gridy = finalRow;
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weighty = 1;
-
+        gbc.gridy = row;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(buttonPanel, gbc);
 
         setLayout(new BorderLayout());
         add(panel, BorderLayout.CENTER);
     }
 }
+

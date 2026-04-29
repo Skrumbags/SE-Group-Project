@@ -337,6 +337,43 @@ public class ReservationService {
         }
     }
 
+    /** Clerk check-in: marks one reservation as active (checked in). */
+    public void checkInReservation(UserSession userSession, String confirmationNumber) {
+        userSession.requireLoggedInClerk();
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            throw new IllegalArgumentException("Confirmation number is required.");
+        }
+        try {
+            // optional sanity check: reservation must exist
+            Reservation r = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+            if (r.getGuestUserId() == null) {
+                throw new IllegalArgumentException("Reservation has no linked guest account; cannot check in.");
+            }
+            sqlite.setReservationActive(confirmationNumber, true);
+            loadList();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check in reservation", e);
+        }
+    }
+
+    /** Clerk check-out: marks one reservation as not active (checked out). */
+    public void checkOutReservation(UserSession userSession, String confirmationNumber) {
+        userSession.requireLoggedInClerk();
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            throw new IllegalArgumentException("Confirmation number is required.");
+        }
+        try {
+            if (sqlite.findByConfirmationNumber(confirmationNumber).isEmpty()) {
+                throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
+            }
+            sqlite.setReservationActive(confirmationNumber, false);
+            loadList();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check out reservation", e);
+        }
+    }
+
     private void loadList() throws SQLException {
         reservationList.clear();
         reservationList.addAll(this.sqlite.findAll());
