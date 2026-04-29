@@ -34,12 +34,17 @@ public class ReservationController {
                                           String creditCardNumber, DateRange dateRange) {
         return reservationService.buildPreview(
                 userSession,
-                roomService.getCatalog(),
+                roomService.getRooms(),
                 roomNumber,
                 guestName,
                 creditCardNumber,
                 dateRange
         );
+    }
+
+    public String resolveUsernameById(Long userId) {
+        User u = userController.findById(userId);
+        return (u != null) ? u.getUsername() : "";
     }
 
     public String confirmAndSaveReservation(ReservationSummary summary, boolean guestApproved) {
@@ -62,7 +67,7 @@ public class ReservationController {
                                                 String creditCardNumber, DateRange dateRange) {
         return reservationService.buildPreviewForClerk(
                 userSession,
-                roomService.getCatalog(),
+                roomService.getRooms(),
                 roomNumber,
                 guestName,
                 creditCardNumber,
@@ -82,7 +87,7 @@ public class ReservationController {
                                        String guestName, String creditCardNumber, Long guestUserId) {
         reservationService.updateReservationAsClerk(
                 userSession,
-                roomService.getCatalog(),
+                roomService.getRooms(),
                 confirmationNumber,
                 newRoomNumber,
                 newRange,
@@ -90,6 +95,14 @@ public class ReservationController {
                 creditCardNumber,
                 guestUserId
         );
+    }
+
+    public void clerkCheckIn(String confirmationNumber) {
+        reservationService.checkInReservation(userSession, confirmationNumber);
+    }
+
+    public void clerkCheckOut(String confirmationNumber) {
+        reservationService.checkOutReservation(userSession, confirmationNumber);
     }
 
     /**
@@ -108,5 +121,35 @@ public class ReservationController {
             throw new IllegalArgumentException("Username is not a guest account: " + u);
         }
         return guest.getDatabaseId();
+    }
+
+    public String cancelReservation(String confirmationNumber) {
+        return reservationService.cancelReservation(userSession, confirmationNumber);
+    }
+
+    public String modifyGuestItinerary(String confirmationNumber, int newRoomNumber, DateRange newDates) {
+        // 1. Controller fetches the Room object
+        Room newRoom = roomService.getRooms().stream()
+                .filter(r -> r.getRoomNumber() == newRoomNumber)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid room number selected."));
+
+        // 2. Pass the domain object to the Service
+        return reservationService.modifyGuestItinerary(userSession, confirmationNumber, newRoom, newDates);
+    }
+
+    public List<Reservation> getMyReservations() {
+        Long myId = userSession.requireLoggedInGuest().getDatabaseId();
+        return reservationService.getReservations().stream()
+                .filter(r -> myId.equals(r.getGuestUserId()))
+                .toList();
+    }
+
+    public List<Room> getAvailableRoomsForModification(DateRange newDates, String excludeConfirmation) {
+        return reservationService.getAvailableRoomsForModification(roomService.getRooms(), newDates, excludeConfirmation);
+    }
+
+    public void modifyGuestPersonalDetails(String confirmationNumber, String newName, String newCard) {
+        reservationService.modifyGuestPersonalDetails(userSession, confirmationNumber, newName, newCard);
     }
 }

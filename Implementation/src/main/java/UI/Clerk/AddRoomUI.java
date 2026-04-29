@@ -1,4 +1,4 @@
-package UI;
+package UI.Clerk;
 
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
@@ -73,3 +73,4 @@ public class AddRoomUI extends JPanel {
         backButton.setVisible(true);
     }
 }
+

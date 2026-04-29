@@ -10,7 +10,7 @@ package Testing.UseCases;
 
 import Domain.People.UserSession;
 import Domain.Reservations.ReservationSummary;
-import Domain.Rooms.RoomCatalog;
+import Domain.Services.RoomService;
 import Domain.Shared.DateRange;
 import Domain.Services.ReservationService;
 
@@ -19,18 +19,18 @@ import Domain.Services.ReservationService;
  */
 public class ReserveRoom {
     private final UserSession userSession;
-    private final RoomCatalog roomCatalog;
+    private final RoomService roomService;
     private final ReservationService reservationService;
 
-    public ReserveRoom(UserSession userSession, RoomCatalog roomCatalog, ReservationService reservationService) {
+    public ReserveRoom(UserSession userSession, RoomService roomService, ReservationService reservationService) {
         this.userSession = userSession;
-        this.roomCatalog = roomCatalog;
+        this.roomService = roomService;
         this.reservationService = reservationService;
     }
 
     public ReservationSummary buildPreview(int roomNumber, String guestName,
                                            String creditCardNumber, DateRange dateRange) {
-        return reservationService.buildPreview(userSession, roomCatalog, roomNumber, guestName, creditCardNumber, dateRange);
+        return reservationService.buildPreview(userSession, roomService.getRooms(), roomNumber, guestName, creditCardNumber, dateRange);
     }
 
     public String confirmAndSave(ReservationSummary summary, boolean guestApproved) {

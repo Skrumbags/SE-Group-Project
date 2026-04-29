@@ -1,4 +1,4 @@
-package UI;
+package UI.Shopping;
 
 import Controllers.ShoppingController;
 import Domain.Shopping.Item;

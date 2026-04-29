@@ -13,15 +13,16 @@ package Domain.Services;
 import Domain.People.Guest;
 import Domain.People.UserSession;
 import Domain.Reservations.BookingValidation;
+import Domain.Reservations.Cancellation;
 import Domain.Shared.DateRange;
 import TechnicalServices.Persistence.SqliteReservationPersistence;
 import Domain.Reservations.Reservation;
 import Domain.Reservations.ReservationSummary;
-import Domain.Rooms.RoomCatalog;
 import Domain.Rooms.Room;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,21 +50,39 @@ public class ReservationService {
     }
 
     public List<Room> calculateOverlap(List<Room> rooms, DateRange dateRange) {
+        return calculateOverlap(rooms, dateRange.getCheckInDate(), dateRange.getCheckOutDate());
+    }
+
+    /**
+     * Rooms with no reservation overlapping {@code [startInclusive, endExclusive)}.
+     */
+    public List<Room> calculateOverlap(List<Room> rooms, LocalDate startInclusive, LocalDate endExclusive) {
         return rooms.stream()
-                .filter(r -> !isReserved(r, dateRange))
+                .filter(r -> !isReserved(r, startInclusive, endExclusive))
                 .toList();
     }
 
     public boolean isReserved(Room room, DateRange dateRange) {
-        return isReserved(room, dateRange, null);
+        return isReserved(room, dateRange.getCheckInDate(), dateRange.getCheckOutDate());
+    }
+
+    public boolean isReserved(Room room, LocalDate startInclusive, LocalDate endExclusive) {
+        return isReserved(room, startInclusive, endExclusive, null);
     }
 
     /**
      * @param excludeConfirmation when non-null, ignores that reservation (used when editing an existing row).
      */
     public boolean isReserved(Room room, DateRange dateRange, String excludeConfirmation) {
+        return isReserved(room, dateRange.getCheckInDate(), dateRange.getCheckOutDate(), excludeConfirmation);
+    }
+
+    public boolean isReserved(Room room, LocalDate startInclusive, LocalDate endExclusive, String excludeConfirmation) {
         try {
-            return sqlite.existsOverlapExcluding(room.getRoomNumber(), dateRange, excludeConfirmation);
+            if (excludeConfirmation == null) {
+                return sqlite.existsOverlap(room.getRoomNumber(), startInclusive, endExclusive);
+            }
+            return sqlite.existsOverlapExcluding(room.getRoomNumber(), startInclusive, endExclusive, excludeConfirmation);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to check reservation overlap", e);
         }
@@ -100,7 +119,7 @@ public class ReservationService {
      * @throws IllegalStateException if the guest is not logged in or the room cannot be booked
      * @throws IllegalArgumentException if validation fails
      */
-    public ReservationSummary buildPreview(UserSession userSession, RoomCatalog roomCatalog,
+    public ReservationSummary buildPreview(UserSession userSession, List<Room> rooms,
                                            int roomNumber, String guestName,
                                            String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInGuest();
@@ -114,7 +133,10 @@ public class ReservationService {
             throw new IllegalArgumentException(err);
         }
 
-        Room room = roomCatalog.findRoom(roomNumber);
+        Room room = rooms.stream()
+                .filter(r -> r.getRoomNumber() == roomNumber)
+                .findFirst()
+                .orElse(null);
         if (room == null) {
             throw new IllegalArgumentException("No room found with number " + roomNumber + ".");
         }
@@ -127,9 +149,9 @@ public class ReservationService {
 
         long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
         double totalCost = nights * room.getMaxDailyRate();
-        String masked = BookingValidation.maskCardNumber(creditCardNumber);
+        String cardNumber = BookingValidation.maskCardNumber(creditCardNumber);
 
-        return new ReservationSummary(room, dateRange, guestName, masked, totalCost, (int) nights);
+        return new ReservationSummary(room, dateRange, guestName, cardNumber, totalCost, (int) nights);
     }
 
     /**
@@ -156,7 +178,7 @@ public class ReservationService {
                 room,
                 range,
                 summary.getGuestName(),
-                summary.getMaskedCardNumber(),
+                summary.getCardNumber(),
                 summary.getTotalCost(),
                 guestDbId
         );
@@ -167,7 +189,7 @@ public class ReservationService {
     /**
      * Same validation as {@link #buildPreview} but requires a signed-in clerk (on behalf of a guest).
      */
-    public ReservationSummary buildPreviewForClerk(UserSession userSession, RoomCatalog roomCatalog,
+    public ReservationSummary buildPreviewForClerk(UserSession userSession, List<Room> rooms,
                                                    int roomNumber, String guestName,
                                                    String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInClerk();
@@ -181,7 +203,10 @@ public class ReservationService {
             throw new IllegalArgumentException(err);
         }
 
-        Room room = roomCatalog.findRoom(roomNumber);
+        Room room = rooms.stream()
+                .filter(r -> r.getRoomNumber() == roomNumber)
+                .findFirst()
+                .orElse(null);
         if (room == null) {
             throw new IllegalArgumentException("No room found with number " + roomNumber + ".");
         }
@@ -194,9 +219,9 @@ public class ReservationService {
 
         long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
         double totalCost = nights * room.getMaxDailyRate();
-        String masked = BookingValidation.maskCardNumber(creditCardNumber);
+        String cardNumber = BookingValidation.maskCardNumber(creditCardNumber);
 
-        return new ReservationSummary(room, dateRange, guestName, masked, totalCost, (int) nights);
+        return new ReservationSummary(room, dateRange, guestName, cardNumber, totalCost, (int) nights);
     }
 
     /**
@@ -221,7 +246,7 @@ public class ReservationService {
                 room,
                 range,
                 summary.getGuestName(),
-                summary.getMaskedCardNumber(),
+                summary.getCardNumber(),
                 summary.getTotalCost(),
                 guestUserId
         );
@@ -245,7 +270,7 @@ public class ReservationService {
         }
     }
 
-    public void updateReservationAsClerk(UserSession userSession, RoomCatalog roomCatalog, String confirmationNumber,
+    public void updateReservationAsClerk(UserSession userSession, List<Room> rooms, String confirmationNumber,
                                          int newRoomNumber, DateRange newRange, String guestName,
                                          String creditCardNumber, Long guestUserId) {
         userSession.requireLoggedInClerk();
@@ -267,18 +292,21 @@ public class ReservationService {
             throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
         }
 
-        String masked;
+        String cardNumber;
         if (creditCardNumber == null || creditCardNumber.isBlank()) {
-            masked = existingRow.get().getMaskedCardNumber();
+            cardNumber = existingRow.get().getCardNumber();
         } else {
             err = BookingValidation.validateCreditCard(creditCardNumber);
             if (err != null) {
                 throw new IllegalArgumentException(err);
             }
-            masked = BookingValidation.maskCardNumber(creditCardNumber);
+            cardNumber = BookingValidation.maskCardNumber(creditCardNumber);
         }
 
-        Room room = roomCatalog.findRoom(newRoomNumber);
+        Room room = rooms.stream()
+                .filter(r -> r.getRoomNumber() == newRoomNumber)
+                .findFirst()
+                .orElse(null);
         if (room == null) {
             throw new IllegalArgumentException("No room found with number " + newRoomNumber + ".");
         }
@@ -299,7 +327,7 @@ public class ReservationService {
                     newRange.getCheckInDate(),
                     newRange.getCheckOutDate(),
                     guestName.trim(),
-                    masked,
+                    cardNumber,
                     totalCost,
                     guestUserId
             );
@@ -309,8 +337,174 @@ public class ReservationService {
         }
     }
 
+    /** Clerk check-in: marks one reservation as active (checked in). */
+    public void checkInReservation(UserSession userSession, String confirmationNumber) {
+        userSession.requireLoggedInClerk();
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            throw new IllegalArgumentException("Confirmation number is required.");
+        }
+        try {
+            // optional sanity check: reservation must exist
+            Reservation r = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+            if (r.getGuestUserId() == null) {
+                throw new IllegalArgumentException("Reservation has no linked guest account; cannot check in.");
+            }
+            LocalDate today = LocalDate.now();
+            if (today.isBefore(r.getDateRange().getCheckInDate())) {
+                throw new IllegalArgumentException(
+                        "Check-in is only allowed on or after the reservation check-in date ("
+                                + r.getDateRange().getCheckInDate() + ").");
+            }
+            sqlite.setReservationActive(confirmationNumber, true);
+            loadList();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check in reservation", e);
+        }
+    }
+
+    /** Clerk check-out: marks one reservation as not active (checked out). */
+    public void checkOutReservation(UserSession userSession, String confirmationNumber) {
+        userSession.requireLoggedInClerk();
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            throw new IllegalArgumentException("Confirmation number is required.");
+        }
+        try {
+            if (sqlite.findByConfirmationNumber(confirmationNumber).isEmpty()) {
+                throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
+            }
+            sqlite.setReservationActive(confirmationNumber, false);
+            loadList();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check out reservation", e);
+        }
+    }
+
     private void loadList() throws SQLException {
         reservationList.clear();
         reservationList.addAll(this.sqlite.findAll());
+    }
+
+    public String cancelReservation(UserSession session, String confirmationNumber) {
+        Reservation r = findReservation(confirmationNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
+
+        if (session.getCurrentUser() instanceof Domain.People.Guest) {
+            if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
+                throw new IllegalStateException("You are not authorized to cancel this reservation.");
+            }
+        }
+
+        Cancellation cancellation = new Cancellation(r, LocalDate.now());
+        double fee = cancellation.getPenaltyFee();
+
+        try {
+            sqlite.deleteByConfirmationNumber(confirmationNumber);
+
+            this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
+
+        } catch (java.sql.SQLException e) {
+            throw new RuntimeException("Failed to delete reservation", e);
+        }
+
+        if (fee > 0) {
+            return String.format("Cancelled. A penalty fee of $%.2f has been charged.", fee);
+        } else {
+            return "Reservation cancelled successfully with no penalty.";
+        }
+    }
+
+    public void modifyGuestPersonalDetails(UserSession session, String confirmationNumber, String newName, String newCard) {
+        Reservation r = findReservation(confirmationNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
+
+        if (session.getCurrentUser() instanceof Domain.People.Guest) {
+            if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
+                throw new IllegalStateException("You are not authorized to modify this reservation.");
+            }
+        }
+
+        r.updatePersonalDetails(newName, newCard);
+
+        try {
+            sqlite.updatePersonalDetailsOnly(r);
+
+            // FIX: Drop the stale object and reload the fresh one from the database
+            this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
+            this.reservationList.add(sqlite.findByConfirmationNumber(confirmationNumber).orElse(r));
+
+        } catch (java.sql.SQLException e) {
+            throw new RuntimeException("Failed to update database.", e);
+        }
+    }
+
+    public String modifyGuestItinerary(UserSession session, String confirmationNumber, Room newRoom, DateRange newDates) {
+        Reservation r = null;
+        try {
+            r = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Enforce authorization
+        if (session.getCurrentUser() instanceof Domain.People.Guest) {
+            if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
+                throw new IllegalStateException("You are not authorized to modify this reservation.");
+            }
+        }
+
+        try {
+            // Check availability, excluding the current reservation
+            boolean isOccupied = sqlite.existsOverlapExcluding(newRoom.getRoomNumber(), newDates, confirmationNumber);
+            if (isOccupied) {
+                throw new IllegalStateException("Room " + newRoom.getRoomNumber() + " is not available for those dates.");
+            }
+
+            double oldFees = r.getExtraFee();
+
+            // Domain expert calculates the new fees
+            r.modifyItinerary(newRoom, newDates, java.time.LocalDate.now());
+
+            // Save changes to database
+            sqlite.updateReservation(
+                    r.getConfirmationNumber(),
+                    r.getRoom().getRoomNumber(),
+                    r.getDateRange().getCheckInDate(),
+                    r.getDateRange().getCheckOutDate(),
+                    r.getGuestName(),
+                    r.getCardNumber(),
+                    r.getTotalCost(),
+                    r.getGuestUserId()
+            );
+
+            this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
+            this.reservationList.add(sqlite.findByConfirmationNumber(confirmationNumber).orElse(r));
+
+            if (r.getExtraFee() > oldFees) {
+                return String.format("Itinerary updated. Your new total is $%.2f (includes change fees).", r.getTotalCost());
+            } else {
+                return String.format("Itinerary updated. Your new total is $%.2f.", r.getTotalCost());
+            }
+
+        } catch (java.sql.SQLException e) {
+            throw new RuntimeException("Database error updating reservation.", e);
+        }
+    }
+
+    public List<Room> getAvailableRoomsForModification(
+            List<Room> allRooms, DateRange newDates, String excludeConfirmation) {
+
+        List<Room> available = new ArrayList<>();
+        for (Room r : allRooms) {
+            try {
+                if (!sqlite.existsOverlapExcluding(r.getRoomNumber(), newDates, excludeConfirmation)) {
+                    available.add(r);
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Database error checking availability", e);
+            }
+        }
+        return available;
     }
 }

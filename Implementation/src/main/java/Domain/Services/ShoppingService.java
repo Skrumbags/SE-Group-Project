@@ -108,12 +108,12 @@ public class ShoppingService {
         Long guestId = g.getDatabaseId();
         if (guestId == null) throw new IllegalStateException("Guest account is not persisted.");
 
-        LocalDate today = LocalDate.now();
         try {
-            if (!reservationDb.hasActiveStay(guestId, today)) {
+            // "Active stay" is determined by clerk check-in/out (Reservations.is_active).
+            if (!reservationDb.hasActiveStay(guestId, LocalDate.now())) {
                 throw new IllegalStateException("You must be an active guest (checked in for a stay) to purchase items.");
             }
-            String resConf = reservationDb.findActiveReservationConfirmation(guestId, today).orElse(null);
+            String resConf = reservationDb.findActiveReservationConfirmation(guestId, LocalDate.now()).orElse(null);
             return storeDb.purchaseItems(guestId, resConf, taxRate);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to purchase items", e);
@@ -124,11 +124,30 @@ public class ShoppingService {
         Guest g = session.requireLoggedInGuest();
         Long guestId = g.getDatabaseId();
         if (guestId == null) throw new IllegalStateException("Guest account is not persisted.");
+        return buildCombinedBillForGuestId(guestId, reservationService);
+    }
 
+    /**
+     * Same aggregation as {@link #buildCombinedBill} for a registered guest, but callable by a logged-in clerk
+     * (e.g. from reservation management).
+     */
+    public CombinedBill buildCombinedBillForClerk(UserSession session,
+                                                  ReservationService reservationService,
+                                                  long guestUserId) {
+        session.requireLoggedInClerk();
+        if (guestUserId <= 0) {
+            throw new IllegalArgumentException("A valid guest user id is required.");
+        }
+        return buildCombinedBillForGuestId(guestUserId, reservationService);
+    }
+
+    private CombinedBill buildCombinedBillForGuestId(long guestId, ReservationService reservationService) {
         List<Reservation> reservations = reservationService.getReservations().stream()
                 .filter(r -> r.getGuestUserId() != null && r.getGuestUserId().equals(guestId))
                 .toList();
-        double stayTotal = reservations.stream().mapToDouble(Reservation::getTotalCost).sum();
+        double staySubtotal = roundMoney(reservations.stream().mapToDouble(Reservation::getTotalCost).sum());
+        double roomTax = roundMoney(staySubtotal * taxRate);
+        double stayTotal = roundMoney(staySubtotal + roomTax);
 
         List<Purchase> purchases;
         try {
@@ -136,9 +155,15 @@ public class ShoppingService {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load purchases", e);
         }
-        double shoppingTotal = purchases.stream().mapToDouble(Purchase::getTotal).sum();
+        double shoppingSubtotal = roundMoney(purchases.stream().mapToDouble(Purchase::getSubtotal).sum());
+        double combinedTotal = roundMoney(stayTotal + shoppingSubtotal);
 
-        return new CombinedBill(guestId, reservations, purchases, stayTotal, shoppingTotal, stayTotal + shoppingTotal);
+        return new CombinedBill(guestId, reservations, purchases,
+                staySubtotal, roomTax, stayTotal, shoppingSubtotal, combinedTotal);
+    }
+
+    private static double roundMoney(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 }
 

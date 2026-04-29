@@ -1,11 +1,13 @@
-package UI;
+package UI.Clerk;
 
 import Controllers.ReservationController;
+import Controllers.ShoppingController;
 import Domain.People.UserSession;
 import Domain.Reservations.Reservation;
 import Domain.Reservations.ReservationSummary;
 import Domain.Rooms.Room;
 import Domain.Shared.DateRange;
+import UI.Shopping.CombinedBillUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,6 +25,7 @@ public class ClerkReservationsUI extends JPanel {
 
     private final UserSession userSession;
     private final ReservationController reservationController;
+    private final ShoppingController shoppingController;
     private final Runnable onBack;
 
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
@@ -36,13 +39,15 @@ public class ClerkReservationsUI extends JPanel {
     private final JTextField guestNameField = new JTextField(18);
     private final JTextField creditCardField = new JTextField(18);
     private final JTextField guestUsernameField = new JTextField(14);
+    // Check-in/out is handled on the clerk home screen (separate flow).
 
     private ReservationSummary currentPreview;
 
     public ClerkReservationsUI(UserSession userSession, ReservationController reservationController,
-                               Runnable onBack) {
+                               ShoppingController shoppingController, Runnable onBack) {
         this.userSession = userSession;
         this.reservationController = reservationController;
+        this.shoppingController = shoppingController;
         this.onBack = onBack;
 
         setLayout(new BorderLayout(8, 8));
@@ -98,7 +103,6 @@ public class ClerkReservationsUI extends JPanel {
         form.add(new JLabel("Guest username (optional, link to account):"), gbc);
         gbc.gridx = 1;
         form.add(guestUsernameField, gbc);
-
         installDatePlaceholder(checkInField);
         installDatePlaceholder(checkOutField);
 
@@ -110,6 +114,7 @@ public class ClerkReservationsUI extends JPanel {
         JButton createBtn = new JButton("Confirm new reservation");
         JButton saveBtn = new JButton("Save changes");
         JButton deleteBtn = new JButton("Delete selected");
+        JButton guestBillBtn = new JButton("View guest bill");
 
         backBtn.addActionListener(e -> onBack.run());
         refreshBtn.addActionListener(e -> refreshList());
@@ -118,6 +123,7 @@ public class ClerkReservationsUI extends JPanel {
         createBtn.addActionListener(e -> handleCreateConfirm());
         saveBtn.addActionListener(e -> handleSave());
         deleteBtn.addActionListener(e -> handleDelete());
+        guestBillBtn.addActionListener(e -> handleViewGuestBill());
 
         buttons.add(backBtn);
         buttons.add(refreshBtn);
@@ -126,6 +132,7 @@ public class ClerkReservationsUI extends JPanel {
         buttons.add(createBtn);
         buttons.add(saveBtn);
         buttons.add(deleteBtn);
+        buttons.add(guestBillBtn);
 
         JPanel south = new JPanel(new BorderLayout(4, 4));
         south.add(form, BorderLayout.CENTER);
@@ -165,7 +172,8 @@ public class ClerkReservationsUI extends JPanel {
                 + " | Room " + r.getRoom().getRoomNumber()
                 + " | " + r.getDateRange().getCheckInDate()
                 + " → " + r.getDateRange().getCheckOutDate()
-                + " | " + r.getGuestName();
+                + " | " + r.getGuestName()
+                + (r.isActive() ? " | ACTIVE" : "");
     }
 
     private void fillFromSelection() {
@@ -180,8 +188,16 @@ public class ClerkReservationsUI extends JPanel {
         setDateField(checkInField, r.getDateRange().getCheckInDate());
         setDateField(checkOutField, r.getDateRange().getCheckOutDate());
         guestNameField.setText(r.getGuestName());
-        creditCardField.setText("");
-        guestUsernameField.setText("");
+
+        creditCardField.setText(r.getCardNumber());
+
+        if (r.getGuestUserId() != null) {
+            String username = reservationController.resolveUsernameById(r.getGuestUserId());
+            guestUsernameField.setText(username);
+        } else {
+            guestUsernameField.setText("");
+        }
+
         currentPreview = null;
     }
 
@@ -252,29 +268,41 @@ public class ClerkReservationsUI extends JPanel {
                         "Nothing selected", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
             Reservation existing = rowCache.get(idx);
             String conf = existing.getConfirmationNumber();
-            int roomNumber = (Integer) roomCombo.getSelectedItem();
+
+            int newRoomNumber = (Integer) roomCombo.getSelectedItem();
             LocalDate in = LocalDate.parse(dateFieldText(checkInField));
             LocalDate out = LocalDate.parse(dateFieldText(checkOutField));
-            DateRange range = new DateRange(in, out);
+            DateRange newRange = new DateRange(in, out);
+
+            boolean itineraryChanged = existing.getRoom().getRoomNumber() != newRoomNumber
+                    || !existing.getDateRange().getCheckInDate().equals(in)
+                    || !existing.getDateRange().getCheckOutDate().equals(out);
+
+            if (itineraryChanged) {
+                String resultMsg = reservationController.modifyGuestItinerary(conf, newRoomNumber, newRange);
+                JOptionPane.showMessageDialog(this, resultMsg, "Itinerary Updated", JOptionPane.INFORMATION_MESSAGE);
+            }
+
             Long guestId = reservationController.resolveGuestUserIdForLink(guestUsernameField.getText());
             reservationController.clerkUpdateReservation(
                     conf,
-                    roomNumber,
-                    range,
+                    newRoomNumber,
+                    newRange,
                     guestNameField.getText(),
                     creditCardField.getText(),
                     guestId
             );
-            JOptionPane.showMessageDialog(this, "Reservation updated.", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
+
+            JOptionPane.showMessageDialog(this, "Reservation details saved.", "Success", JOptionPane.INFORMATION_MESSAGE);
             refreshList();
+
         } catch (IllegalStateException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Cannot update", JOptionPane.ERROR_MESSAGE);
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Dates must be YYYY-MM-DD.", "Invalid date",
-                    JOptionPane.ERROR_MESSAGE);
+        } catch (java.time.format.DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Dates must be YYYY-MM-DD.", "Invalid date", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -302,6 +330,39 @@ public class ClerkReservationsUI extends JPanel {
             clearFormForNew();
         } catch (IllegalStateException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Cannot delete", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleViewGuestBill() {
+        try {
+            userSession.requireLoggedInClerk();
+            int idx = reservationList.getSelectedIndex();
+            if (idx < 0 || idx >= rowCache.size()) {
+                JOptionPane.showMessageDialog(this,
+                        "Select a reservation in the list.",
+                        "Nothing selected",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            Reservation r = rowCache.get(idx);
+            if (r.getGuestUserId() == null) {
+                JOptionPane.showMessageDialog(this,
+                        "This reservation has no linked guest account. Set guest username, save, then try again.",
+                        "No guest account",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            JDialog dlg = new JDialog(owner, "Guest bill", Dialog.ModalityType.APPLICATION_MODAL);
+            CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, r.getGuestUserId());
+            bill.refresh();
+            dlg.setContentPane(bill);
+            dlg.pack();
+            dlg.setSize(Math.max(dlg.getWidth(), 700), Math.max(dlg.getHeight(), 520));
+            dlg.setLocationRelativeTo(owner);
+            dlg.setVisible(true);
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Cannot open bill", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -350,3 +411,4 @@ public class ClerkReservationsUI extends JPanel {
         field.setForeground(inactiveFg != null ? inactiveFg : Color.GRAY);
     }
 }
+

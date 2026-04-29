@@ -3,6 +3,7 @@ package TechnicalServices.Persistence;
 import Domain.Reservations.Reservation;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
+import Domain.Services.ReservationService;
 import Domain.Shared.DateRange;
 
 import java.io.IOException;
@@ -78,8 +79,13 @@ public class SqliteReservationPersistence {
      * {@link DateRange#overlaps(DateRange)}.
      */
     public boolean existsOverlap(int roomNumber, DateRange candidate) throws SQLException {
-        LocalDate cIn = candidate.getCheckInDate();
-        LocalDate cOut = candidate.getCheckOutDate();
+        return existsOverlap(roomNumber, candidate.getCheckInDate(), candidate.getCheckOutDate());
+    }
+
+    /**
+     * Same overlap rule as {@link DateRange#overlaps(DateRange)}: {@code [cIn, cOut)} vs stored ranges.
+     */
+    public boolean existsOverlap(int roomNumber, LocalDate cIn, LocalDate cOut) throws SQLException {
         String sql = """
                 SELECT 1 FROM Reservations
                 WHERE room_number = ?
@@ -102,7 +108,7 @@ public class SqliteReservationPersistence {
     public List<Reservation> findAll() throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_id, guest_name, masked_card_number, total_cost
+                       guest_id, guest_name, card_number, is_active, total_cost, created_date
                 FROM Reservations
                 ORDER BY id
                 """;
@@ -121,7 +127,7 @@ public class SqliteReservationPersistence {
     public Optional<Reservation> findByConfirmationNumber(String confirmationNumber) throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_id, guest_name, masked_card_number, total_cost
+                       guest_id, guest_name, card_number, is_active, total_cost, created_date
                 FROM Reservations
                 WHERE confirmation_number = ?
                 """;
@@ -149,14 +155,18 @@ public class SqliteReservationPersistence {
         if (!rs.wasNull()) {
             guestId = gid;
         }
+        LocalDate createdDate = readDateColumn(rs, "created_date");
+        boolean active = rs.getInt("is_active") != 0;
         return new Reservation(
                 conf,
                 room,
                 range,
                 rs.getString("guest_name"),
-                rs.getString("masked_card_number"),
+                rs.getString("card_number"),
                 rs.getDouble("total_cost"),
-                guestId
+                guestId,
+                createdDate,
+                active
         );
     }
 
@@ -211,8 +221,8 @@ public class SqliteReservationPersistence {
         String sql = """
                 INSERT INTO Reservations (
                     confirmation_number, room_number, check_in_date, check_out_date,
-                    total_guests, created_date, guest_id, guest_name, masked_card_number, total_cost
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    total_guests, created_date, guest_id, guest_name, card_number, is_active, total_cost
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -221,15 +231,16 @@ public class SqliteReservationPersistence {
             setDateParam(ps, 3, r.getDateRange().getCheckInDate());
             setDateParam(ps, 4, r.getDateRange().getCheckOutDate());
             ps.setInt(5, 1);
-            setDateParam(ps, 6, LocalDate.now());
+            setDateParam(ps, 6, r.getCreatedDate());
             if (r.getGuestUserId() != null) {
                 ps.setLong(7, r.getGuestUserId());
             } else {
                 ps.setNull(7, Types.INTEGER);
             }
             ps.setString(8, r.getGuestName());
-            ps.setString(9, r.getMaskedCardNumber());
-            ps.setDouble(10, r.getTotalCost());
+            ps.setString(9, r.getCardNumber());
+            ps.setInt(10, r.isActive() ? 1 : 0);
+            ps.setDouble(11, r.getTotalCost());
             ps.executeUpdate();
         }
     }
@@ -247,7 +258,7 @@ public class SqliteReservationPersistence {
     }
 
     public void updateReservation(String confirmationNumber, int roomNumber, LocalDate checkIn,
-                                  LocalDate checkOut, String guestName, String maskedCardNumber,
+                                  LocalDate checkOut, String guestName, String cardNumber,
                                   double totalCost, Long guestUserId) throws SQLException {
         String sql = """
                 UPDATE Reservations SET
@@ -255,7 +266,8 @@ public class SqliteReservationPersistence {
                     check_in_date = ?,
                     check_out_date = ?,
                     guest_name = ?,
-                    masked_card_number = ?,
+                    card_number = ?,
+                    is_active = ?,
                     total_cost = ?,
                     guest_id = ?
                 WHERE confirmation_number = ?
@@ -266,14 +278,29 @@ public class SqliteReservationPersistence {
             setDateParam(ps, 2, checkIn);
             setDateParam(ps, 3, checkOut);
             ps.setString(4, guestName);
-            ps.setString(5, maskedCardNumber);
-            ps.setDouble(6, totalCost);
+            ps.setString(5, cardNumber);
+            ps.setInt(6, 0); // itinerary edits do not implicitly check in/out
+            ps.setDouble(7, totalCost);
             if (guestUserId != null) {
-                ps.setLong(7, guestUserId);
+                ps.setLong(8, guestUserId);
             } else {
-                ps.setNull(7, Types.INTEGER);
+                ps.setNull(8, Types.INTEGER);
             }
-            ps.setString(8, confirmationNumber);
+            ps.setString(9, confirmationNumber);
+            int n = ps.executeUpdate();
+            if (n != 1) {
+                throw new SQLException("UPDATE Reservations expected 1 row, got " + n);
+            }
+        }
+    }
+
+    /** Sets {@code is_active} for a reservation by confirmation number. */
+    public void setReservationActive(String confirmationNumber, boolean active) throws SQLException {
+        String sql = "UPDATE Reservations SET is_active = ? WHERE confirmation_number = ?";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, active ? 1 : 0);
+            ps.setString(2, confirmationNumber);
             int n = ps.executeUpdate();
             if (n != 1) {
                 throw new SQLException("UPDATE Reservations expected 1 row, got " + n);
@@ -286,19 +313,17 @@ public class SqliteReservationPersistence {
      * Used to enforce shopping precondition: "active guest at the hotel".
      */
     public boolean hasActiveStay(long guestUserId, LocalDate today) throws SQLException {
+        // Backwards-compatible name: "active stay" now means clerk has checked the guest in.
         String sql = """
                 SELECT 1
                 FROM Reservations
                 WHERE guest_id = ?
-                  AND check_in_date <= ?
-                  AND check_out_date > ?
+                  AND is_active = 1
                 LIMIT 1
                 """;
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, guestUserId);
-            setDateParam(ps, 2, today);
-            setDateParam(ps, 3, today);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -310,20 +335,18 @@ public class SqliteReservationPersistence {
      * When multiple overlap, returns the latest created row by id.
      */
     public Optional<String> findActiveReservationConfirmation(long guestUserId, LocalDate today) throws SQLException {
+        // "Active" now means checked-in by clerk, not date-based.
         String sql = """
                 SELECT confirmation_number
                 FROM Reservations
                 WHERE guest_id = ?
-                  AND check_in_date <= ?
-                  AND check_out_date > ?
+                  AND is_active = 1
                 ORDER BY id DESC
                 LIMIT 1
                 """;
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, guestUserId);
-            setDateParam(ps, 2, today);
-            setDateParam(ps, 3, today);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.ofNullable(rs.getString(1));
@@ -341,8 +364,19 @@ public class SqliteReservationPersistence {
         if (excludeConfirmation == null) {
             return existsOverlap(roomNumber, candidate);
         }
-        LocalDate cIn = candidate.getCheckInDate();
-        LocalDate cOut = candidate.getCheckOutDate();
+        return existsOverlapExcluding(
+                roomNumber,
+                candidate.getCheckInDate(),
+                candidate.getCheckOutDate(),
+                excludeConfirmation
+        );
+    }
+
+    public boolean existsOverlapExcluding(int roomNumber, LocalDate cIn, LocalDate cOut, String excludeConfirmation)
+            throws SQLException {
+        if (excludeConfirmation == null) {
+            return existsOverlap(roomNumber, cIn, cOut);
+        }
         String sql = """
                 SELECT 1 FROM Reservations
                 WHERE room_number = ?
@@ -359,6 +393,26 @@ public class SqliteReservationPersistence {
             ps.setString(4, excludeConfirmation);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
+            }
+        }
+    }
+
+    public void updatePersonalDetailsOnly(Reservation r) throws SQLException {
+        String sql = """
+            UPDATE Reservations SET
+                guest_name = ?,
+                card_number = ?
+            WHERE confirmation_number = ?
+            """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, r.getGuestName());
+            ps.setString(2, r.getCardNumber());
+            ps.setString(3, r.getConfirmationNumber());
+
+            int n = ps.executeUpdate();
+            if (n != 1) {
+                throw new SQLException("UPDATE Reservations expected 1 row, got " + n);
             }
         }
     }

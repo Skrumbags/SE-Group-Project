@@ -1,4 +1,4 @@
-package UI;
+package UI.User;
 
 import Domain.People.User;
 
@@ -15,7 +15,9 @@ public class GuestUI extends JPanel {
                    Runnable onSearchRooms,
                    Runnable onShopBrowse,
                    Runnable onShopCart,
-                   Runnable onCombinedBill) {
+                   Runnable onCombinedBill,
+                   Runnable updateGuestPanel,
+                   Runnable onManageReservations) {
 
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -49,7 +51,9 @@ public class GuestUI extends JPanel {
             panel.add(imageLabel, gbc);
         }
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 0, 5));
+        JPanel topRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         JButton reservationsBtn = new JButton("Reservations");
         reservationsBtn.addActionListener(e -> onReservations.run());
         JButton searchBtn = new JButton("Search available rooms");
@@ -60,20 +64,28 @@ public class GuestUI extends JPanel {
         cartBtn.addActionListener(e -> onShopCart.run());
         JButton billBtn = new JButton("View combined bill");
         billBtn.addActionListener(e -> onCombinedBill.run());
-        buttonPanel.add(searchBtn);
-        buttonPanel.add(reservationsBtn);
-        buttonPanel.add(shopBtn);
-        buttonPanel.add(cartBtn);
-        buttonPanel.add(billBtn);
+        JButton editProfile = new JButton("Edit profile");
+        editProfile.addActionListener(e -> { updateGuestPanel.run();});
+        JButton manageBtn = new JButton("View My Reservations");
+        manageBtn.addActionListener(e -> onManageReservations.run());
+
+        topRow.add(searchBtn);
+        topRow.add(reservationsBtn);
+        topRow.add(manageBtn);
+        topRow.add(editProfile);
+        bottomRow.add(shopBtn);
+        bottomRow.add(cartBtn);
+        bottomRow.add(billBtn);
+
+        buttonPanel.add(topRow);
+        buttonPanel.add(bottomRow);
 
         gbc.gridy = row;
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weighty = 1;
-
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(buttonPanel, gbc);
 
         setLayout(new BorderLayout());
         add(panel, BorderLayout.CENTER);
     }
 }
+

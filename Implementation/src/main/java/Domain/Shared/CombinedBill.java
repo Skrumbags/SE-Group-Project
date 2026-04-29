@@ -20,21 +20,31 @@ public class CombinedBill {
     private final long guestUserId;
     private final List<Reservation> reservations;
     private final List<Purchase> purchases;
+    /** Sum of room charges before tax (from reservation rows). */
+    private final double staySubtotal;
+    /** Tax applied to {@link #staySubtotal} only. */
+    private final double roomTax;
+    /** {@link #staySubtotal} + {@link #roomTax}. */
     private final double stayTotal;
-    private final double shoppingTotal;
+    /** Sum of purchase subtotals (store purchase tax is excluded from the combined bill). */
+    private final double shoppingSubtotal;
     private final double combinedTotal;
 
     public CombinedBill(long guestUserId,
                         List<Reservation> reservations,
                         List<Purchase> purchases,
+                        double staySubtotal,
+                        double roomTax,
                         double stayTotal,
-                        double shoppingTotal,
+                        double shoppingSubtotal,
                         double combinedTotal) {
         this.guestUserId = guestUserId;
         this.reservations = new ArrayList<>(reservations == null ? List.of() : reservations);
         this.purchases = new ArrayList<>(purchases == null ? List.of() : purchases);
+        this.staySubtotal = staySubtotal;
+        this.roomTax = roomTax;
         this.stayTotal = stayTotal;
-        this.shoppingTotal = shoppingTotal;
+        this.shoppingSubtotal = shoppingSubtotal;
         this.combinedTotal = combinedTotal;
     }
 
@@ -50,12 +60,21 @@ public class CombinedBill {
         return Collections.unmodifiableList(purchases);
     }
 
+    public double getStaySubtotal() {
+        return staySubtotal;
+    }
+
+    public double getRoomTax() {
+        return roomTax;
+    }
+
+    /** Room charges including room tax. */
     public double getStayTotal() {
         return stayTotal;
     }
 
-    public double getShoppingTotal() {
-        return shoppingTotal;
+    public double getShoppingSubtotal() {
+        return shoppingSubtotal;
     }
 
     public double getCombinedTotal() {

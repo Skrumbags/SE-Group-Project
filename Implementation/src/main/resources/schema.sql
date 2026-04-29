@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS Reservations (
     created_date DATE NOT NULL,
     guest_id INTEGER REFERENCES Users(id),
     guest_name TEXT NOT NULL,
-    masked_card_number TEXT NOT NULL,
+    card_number TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 0,
     total_cost REAL NOT NULL
 );
 

@@ -58,5 +58,10 @@ public class ShoppingController {
     public CombinedBill combinedBill() {
         return shoppingService.buildCombinedBill(userSession, reservationService);
     }
+
+    /** Clerk-only: same snapshot as the guest’s combined bill for {@code guestUserId}. */
+    public CombinedBill combinedBillForGuest(long guestUserId) {
+        return shoppingService.buildCombinedBillForClerk(userSession, reservationService, guestUserId);
+    }
 }
 

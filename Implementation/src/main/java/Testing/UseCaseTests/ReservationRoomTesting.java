@@ -8,20 +8,19 @@
  */
 package Testing.UseCaseTests;
 
+import Domain.Services.UserService;
 import TechnicalServices.Persistence.SqliteReservationPersistence;
 import Domain.People.Guest;
 import Domain.People.UserSession;
 import Domain.Reservations.Reservation;
 import Domain.Reservations.ReservationSummary;
-import Domain.Rooms.RoomCatalog;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
 import Testing.UseCases.ReserveRoom;
-import UI.ReserveRoomUI;
+import UI.User.ReserveRoomUI;
 import Domain.Shared.DateRange;
 import Controllers.ReservationController;
 import Controllers.UserController;
-import Domain.People.UserCatalog;
 import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
 
@@ -48,8 +47,7 @@ public class ReservationRoomTesting {
         UserSession userSession = new UserSession();
         userSession.login(new Guest("guest1", "pass", "John Doe", "555-0100", "john@example.com"));
 
-        RoomCatalog roomCatalog = new RoomCatalog();
-        RoomService roomService = new RoomService(roomCatalog, TEST_DB);
+        RoomService roomService = new RoomService(TEST_DB);
         Room room = new Room(
                 101,
                 false,
@@ -60,7 +58,7 @@ public class ReservationRoomTesting {
         assertTrue(roomService.addRoom(room), "Test room should be inserted into DB-backed catalog.");
 
         ReservationService reservationService = new ReservationService(TEST_DB);
-        ReserveRoom reserveRoom = new ReserveRoom(userSession, roomCatalog, reservationService);
+        ReserveRoom reserveRoom = new ReserveRoom(userSession, roomService, reservationService);
         DateRange range = new DateRange(3, 25, 2026, 3, 28, 2026);
 
         ReservationSummary preview = reserveRoom.buildPreview(
@@ -73,7 +71,7 @@ public class ReservationRoomTesting {
         assertTrue(preview.getRoom().equals(room), "Preview should use the selected room.");
         assertTrue(preview.getNumberOfNights() == 3, "Preview should calculate number of nights.");
         assertTrue(preview.getTotalCost() == 360.00, "Preview total cost should be 3 * 120.00.");
-        assertTrue("**** **** **** 1111".equals(preview.getMaskedCardNumber()), "Preview should mask card.");
+        assertTrue("4111111111111111".equals(preview.getCardNumber()), "Preview should store full card number.");
 
         String confirmationNumber = reserveRoom.confirmAndSave(preview, true);
         assertTrue(confirmationNumber.startsWith("CONF-"), "Confirmation number should be generated.");
@@ -94,9 +92,8 @@ public class ReservationRoomTesting {
         UserSession userSession = new UserSession();
         userSession.login(new Guest("guest1", "pass", "John Doe", "555-0100", "john@example.com"));
 
-        RoomCatalog roomCatalog = new RoomCatalog();
         Path db = Path.of("data", "database.db");
-        RoomService roomService = new RoomService(roomCatalog, db);
+        RoomService roomService = new RoomService(db);
         if (roomService.getRooms().isEmpty()) {
             roomService.addRoom(new Room(
                     101,
@@ -115,7 +112,7 @@ public class ReservationRoomTesting {
         }
 
         ReservationService reservationService = new ReservationService(db);
-        UserController userController = new UserController(new UserCatalog());
+        UserController userController = new UserController(new UserService());
         ReservationController reservationController =
                 new ReservationController(roomService, reservationService, userSession, userController);
 
