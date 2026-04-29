@@ -16,6 +16,8 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.sql.DriverManager.getConnection;
+
 /**
  * Persists {@link User} rows to SQLite (used by {@link Controllers.UserController}).
  */
@@ -41,7 +43,7 @@ public class SqliteUserPersistence {
                 INSERT INTO Users (username, password, name, phone, email, role, employee_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
-        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+        try (Connection conn = getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, username);
             ps.setString(2, password);
@@ -77,7 +79,7 @@ public class SqliteUserPersistence {
                 INSERT INTO Users (username, password, name, phone, email, role, employee_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
-        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+        try (Connection conn = getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, username);
             ps.setString(2, password);
@@ -99,7 +101,7 @@ public class SqliteUserPersistence {
     /** Persists a new encoded password for an existing user row. */
     public void updatePassword(long userId, String encodedPassword) throws SQLException {
         String sql = "UPDATE Users SET password = ? WHERE id = ?";
-        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+        try (Connection conn = getConnection(jdbcUrl());
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, encodedPassword);
             ps.setLong(2, userId);
@@ -117,7 +119,7 @@ public class SqliteUserPersistence {
                 ORDER BY id
                 """;
         List<User> list = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+        try (Connection conn = getConnection(jdbcUrl());
              Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
@@ -149,5 +151,23 @@ public class SqliteUserPersistence {
         };
         u.setDatabaseId(id);
         return u;
+    }
+
+    // UPDATE GUEST FUNC.
+    public void updateGuest(Guest g) {
+        String sql = "UPDATE users SET name = ?, phone = ?, email = ? WHERE id = ?";
+
+        try (Connection conn = getConnection(jdbcUrl());
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, g.getName());
+            stmt.setString(2, g.getPhone());
+            stmt.setString(3, g.getEmail());
+            stmt.setLong(4, g.getDatabaseId());
+
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

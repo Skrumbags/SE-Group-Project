@@ -178,4 +178,29 @@ public class UserService {
         return findById(id);
     }
 
+    // ADDITION for Updating Guest Info:
+    public Result updateGuestProfile(Long id, String name, String phone, String email) {
+        User u = findById(id);
+        if (u == null || !(u instanceof Guest)) {
+            return Result.INVALID_INPUT;
+        }
+
+        Guest g = (Guest) u;
+
+        if (name == null || name.isBlank()) return Result.INVALID_INPUT;
+
+        g.setName(name);
+        g.setPhone(phone);
+        g.setEmail(email);
+
+        if (userDb != null) {
+            userDb.updateGuest(g);
+        }
+
+        return Result.SUCCESS;
+    }
+
+
+
+
 }
