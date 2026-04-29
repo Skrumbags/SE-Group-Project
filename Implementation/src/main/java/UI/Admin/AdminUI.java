@@ -18,7 +18,7 @@ import java.util.List;
  */
 public class AdminUI extends JPanel {
 
-    public AdminUI(UserSession userSession, UserController userController, Runnable onCreateClerk, Runnable onHome) {
+    public AdminUI(UserSession userSession, UserController userController, Runnable onCreateClerk, Runnable onEditProfile, Runnable onHome) {
         setLayout(new BorderLayout(16, 16));
         setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
 
@@ -47,8 +47,11 @@ public class AdminUI extends JPanel {
                         JOptionPane.ERROR_MESSAGE);
             }
         });
+        JButton editProfile = new JButton("Edit profile");
+        editProfile.addActionListener(e -> onEditProfile.run());
         actions.add(createClerk);
         actions.add(resetPassword);
+        actions.add(editProfile);
         add(actions, BorderLayout.SOUTH);
     }
 

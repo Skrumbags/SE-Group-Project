@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserService {
-    public enum Result { SUCCESS, DUPLICATE_USERNAME, INVALID_INPUT }
+    public enum Result { SUCCESS, DUPLICATE_USERNAME, INVALID_INPUT, INCORRECT_PASSWORD }
 
     private final List<User> users;
     private final SqliteUserPersistence userDb;
@@ -203,7 +203,51 @@ public class UserService {
         return Result.SUCCESS;
     }
 
+    public Result updateUserProfile(Long id, String username, String name, String phone, String email, String oldPw, String newPw) {
+        User u = findById(id);
+        if (u == null) return Result.INVALID_INPUT;
 
+        // 1. Core Validations
+        if (username == null || username.isBlank() || username.contains(" ")) return Result.INVALID_INPUT;
+        if (name == null || name.isBlank()) return Result.INVALID_INPUT;
 
+        if (u instanceof Guest) {
+            if (phone != null && !phone.isBlank() && !phone.matches("[0-9+()\\-\\s]{7,}")) return Result.INVALID_INPUT;
+            if (email != null && !email.isBlank() && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) return Result.INVALID_INPUT;
+        }
 
+        // 2. Uniqueness Validation
+        if (!u.getUsername().equals(username) && exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
+
+        // 3. Password Check
+        boolean changePw = (newPw != null && !newPw.isBlank());
+        if (changePw) {
+            if (newPw.length() < 4) return Result.INVALID_INPUT;
+            if (oldPw == null || oldPw.isBlank() || !u.checkPassword(oldPw)) return Result.INCORRECT_PASSWORD;
+        }
+
+        // 4. Persistence
+        if (userDb != null) {
+            try {
+                userDb.updateUserBasicInfo(id, username, name, (u instanceof Guest) ? phone : null, (u instanceof Guest) ? email : null);
+                if (changePw) {
+                    String encoded = PasswordHasher.hashPassword(newPw);
+                    userDb.updatePassword(id, encoded);
+                }
+                load(); // Reload the whole list from DB to ensure memory perfectly matches SQLite
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to update profile", e);
+            }
+        } else {
+            // Fallback for tests running without DB
+            if (u instanceof Guest g) {
+                g.setName(name);
+                g.setPhone(phone);
+                g.setEmail(email);
+            }
+        }
+        return Result.SUCCESS;
+    }
 }

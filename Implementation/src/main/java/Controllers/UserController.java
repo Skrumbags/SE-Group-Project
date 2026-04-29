@@ -99,4 +99,8 @@ public class UserController {
         }
         throw new IllegalStateException("Unsupported user type: " + u.getClass());
     }
+
+    public UserService.Result updateUserProfile(Long id, String username, String name, String phone, String email, String oldPw, String newPw) {
+        return userService.updateUserProfile(id, username, name, phone, email, oldPw, newPw);
+    }
 }

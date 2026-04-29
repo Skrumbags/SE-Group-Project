@@ -170,4 +170,17 @@ public class SqliteUserPersistence {
             throw new RuntimeException(e);
         }
     }
+
+    public void updateUserBasicInfo(long id, String username, String name, String phone, String email) throws SQLException {
+        String sql = "UPDATE Users SET username = ?, name = ?, phone = ?, email = ? WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, name);
+            if (phone != null && !phone.isBlank()) ps.setString(3, phone); else ps.setNull(3, Types.VARCHAR);
+            if (email != null && !email.isBlank()) ps.setString(4, email); else ps.setNull(4, Types.VARCHAR);
+            ps.setLong(5, id);
+            ps.executeUpdate();
+        }
+    }
 }

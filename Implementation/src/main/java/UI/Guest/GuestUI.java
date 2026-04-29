@@ -16,7 +16,7 @@ public class GuestUI extends JPanel {
                    Runnable onShopBrowse,
                    Runnable onShopCart,
                    Runnable onCombinedBill,
-                   Runnable updateGuestPanel,
+                   Runnable onEditProfile,
                    Runnable onManageReservations) {
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -65,7 +65,7 @@ public class GuestUI extends JPanel {
         JButton billBtn = new JButton("View combined bill");
         billBtn.addActionListener(e -> onCombinedBill.run());
         JButton editProfile = new JButton("Edit profile");
-        editProfile.addActionListener(e -> { updateGuestPanel.run();});
+        editProfile.addActionListener(e -> { onEditProfile.run();});
         JButton manageBtn = new JButton("View My Reservations");
         manageBtn.addActionListener(e -> onManageReservations.run());
 
