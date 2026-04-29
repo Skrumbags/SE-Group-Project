@@ -140,4 +140,8 @@ public class ReservationController {
     public List<Room> getAvailableRoomsForModification(DateRange newDates, String excludeConfirmation) {
         return reservationService.getAvailableRoomsForModification(roomService.getRooms(), newDates, excludeConfirmation);
     }
+
+    public void modifyGuestPersonalDetails(String confirmationNumber, String newName, String newCard) {
+        reservationService.modifyGuestPersonalDetails(userSession, confirmationNumber, newName, newCard);
+    }
 }

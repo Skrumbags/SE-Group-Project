@@ -343,66 +343,55 @@ public class ReservationService {
     }
 
     public String cancelReservation(UserSession session, String confirmationNumber) {
-        // 1. Fetch reservation
-        Reservation r = null;
-        try {
-            r = sqlite.findByConfirmationNumber(confirmationNumber)
-                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        Reservation r = findReservation(confirmationNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
 
-        // 2. Validate authorization (Guest can only cancel their own; Clerk/Admin can cancel any)
         if (session.getCurrentUser() instanceof Domain.People.Guest) {
             if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
                 throw new IllegalStateException("You are not authorized to cancel this reservation.");
             }
         }
 
-        // 3. GRASP Creator: Create the cancellation object to calculate fees
         Cancellation cancellation = new Cancellation(r, LocalDate.now());
         double fee = cancellation.getPenaltyFee();
 
-        // 4. Remove from database
         try {
             sqlite.deleteByConfirmationNumber(confirmationNumber);
+
+            this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
+
         } catch (java.sql.SQLException e) {
-            throw new RuntimeException("Failed to delete reservation from database", e);
+            throw new RuntimeException("Failed to delete reservation", e);
         }
 
-        // 5. Return summary (In a fully robust system, you would send this fee to BillingService here)
         if (fee > 0) {
-            return String.format("Reservation cancelled. As this is past the 2-day grace period, a penalty fee of $%.2f has been charged to the card on file.", fee);
+            return String.format("Cancelled. A penalty fee of $%.2f has been charged.", fee);
         } else {
             return "Reservation cancelled successfully with no penalty.";
         }
     }
 
-    public void modifyGuestPersonalDetails(UserSession session, String confirmationNumber,
-                                           String newName, String newCard, String newAddress) {
-        Reservation r = null;
-        try {
-            r = sqlite.findByConfirmationNumber(confirmationNumber)
-                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public void modifyGuestPersonalDetails(UserSession session, String confirmationNumber, String newName, String newCard) {
+        Reservation r = findReservation(confirmationNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
 
-        // Ensure only the guest who owns the reservation (or a clerk) can modify it
         if (session.getCurrentUser() instanceof Domain.People.Guest) {
             if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
                 throw new IllegalStateException("You are not authorized to modify this reservation.");
             }
         }
 
-        // Delegate update to the domain object (Information Expert)
         r.updatePersonalDetails(newName, newCard);
 
-        // Persist changes
         try {
             sqlite.updatePersonalDetailsOnly(r);
+
+            // FIX: Drop the stale object and reload the fresh one from the database
+            this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
+            this.reservationList.add(sqlite.findByConfirmationNumber(confirmationNumber).orElse(r));
+
         } catch (java.sql.SQLException e) {
-            throw new RuntimeException("Failed to update reservation.", e);
+            throw new RuntimeException("Failed to update database.", e);
         }
     }
 
@@ -429,7 +418,7 @@ public class ReservationService {
                 throw new IllegalStateException("Room " + newRoom.getRoomNumber() + " is not available for those dates.");
             }
 
-            double oldCost = r.getTotalCost();
+            double oldFees = r.getExtraFee();
 
             // Domain expert calculates the new fees
             r.modifyItinerary(newRoom, newDates, java.time.LocalDate.now());
@@ -446,7 +435,10 @@ public class ReservationService {
                     r.getGuestUserId()
             );
 
-            if (r.getTotalCost() > oldCost) {
+            this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
+            this.reservationList.add(sqlite.findByConfirmationNumber(confirmationNumber).orElse(r));
+
+            if (r.getExtraFee() > oldFees) {
                 return String.format("Itinerary updated. Your new total is $%.2f (includes change fees).", r.getTotalCost());
             } else {
                 return String.format("Itinerary updated. Your new total is $%.2f.", r.getTotalCost());

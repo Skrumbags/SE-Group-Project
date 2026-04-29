@@ -79,6 +79,10 @@ public class Reservation {
         return baseCost + extraFee;
     }
 
+    public double getExtraFee() { return extraFee; }
+
+    public double getBaseCost() { return baseCost; }
+
     public Long getGuestUserId() {
         return guestUserId;
     }
@@ -118,9 +122,9 @@ public class Reservation {
         long daysSinceCreation = java.time.temporal.ChronoUnit.DAYS.between(createdDate, modificationDate);
 
         // 1. Calculate the penalty (if past 2 days, charge 80% of OLD single night rate)
-        double penaltyFee = 0.0;
+        double penalty = 0.0;
         if (daysSinceCreation > 2) {
-            penaltyFee = this.getSingleNightRate() * 0.80;
+            penalty += this.getSingleNightRate() * 0.80;
         }
 
         // 2. Calculate new base cost
@@ -132,5 +136,6 @@ public class Reservation {
         this.room = newRoom;
         this.dateRange = newDates;
         this.baseCost = newBaseCost;
+        this.extraFee += penalty;
     }
 }

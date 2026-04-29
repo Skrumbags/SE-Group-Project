@@ -47,8 +47,10 @@ public class GuestReservationsUI extends JPanel {
         rightPanel.add(new JScrollPane(detailsArea), BorderLayout.CENTER);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton modifyBtn = new JButton("Modify Selected");
+        JButton updateDetailsBtn = new JButton("Update Details");
+        JButton modifyBtn = new JButton("Modify Itinerary");
         JButton cancelBtn = new JButton("Cancel Selected");
+        buttonPanel.add(updateDetailsBtn);
         buttonPanel.add(modifyBtn);
         buttonPanel.add(cancelBtn);
         rightPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -58,6 +60,7 @@ public class GuestReservationsUI extends JPanel {
         backBtn.addActionListener(e -> onBack.run());
         topPanel.add(backBtn);
 
+        updateDetailsBtn.addActionListener(e -> handleUpdateDetails());
         modifyBtn.addActionListener(e -> handleModify());
         cancelBtn.addActionListener(e -> handleCancel());
 
@@ -67,6 +70,7 @@ public class GuestReservationsUI extends JPanel {
     }
 
     public void refreshList() {
+        reservationList.clearSelection(); // ADD THIS LINE so visual bugs don't persist
         rowCache.clear();
         rowCache.addAll(reservationController.getMyReservations());
         listModel.clear();
@@ -91,15 +95,21 @@ public class GuestReservationsUI extends JPanel {
 
     private void handleCancel() {
         int idx = reservationList.getSelectedIndex();
-        if (idx < 0) return;
+        if (idx < 0) {
+            JOptionPane.showMessageDialog(this, "Please select a reservation first.", "None Selected", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         Reservation r = rowCache.get(idx);
 
         double fee = r.peekPenaltyFee(LocalDate.now());
+
+        // Front-load the fee warning
         String warningMsg = fee > 0 ?
-                String.format("WARNING: Cancelling this reservation will incur a penalty fee of $%.2f. Are you sure?", fee) :
+                String.format("WARNING: Cancelling this reservation is past the free cancellation window. A penalty fee of $%.2f will be charged to your card.\n\nAre you sure you want to cancel?", fee) :
                 "Are you sure you want to cancel this reservation?";
 
         int confirm = JOptionPane.showConfirmDialog(this, warningMsg, "Confirm Cancellation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 String result = reservationController.cancelReservation(r.getConfirmationNumber());
@@ -113,17 +123,51 @@ public class GuestReservationsUI extends JPanel {
 
     private void handleModify() {
         int idx = reservationList.getSelectedIndex();
-        if (idx < 0) return;
+        if (idx < 0) {
+            JOptionPane.showMessageDialog(this, "Please select a reservation first.", "None Selected", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         Reservation r = rowCache.get(idx);
 
-        // STEP 1: Select Dates
-        JTextField inField = new JTextField("YYYY-MM-DD", 10);
-        JTextField outField = new JTextField("YYYY-MM-DD", 10);
-        JPanel datePanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        datePanel.add(new JLabel("New Check-In:")); datePanel.add(inField);
-        datePanel.add(new JLabel("New Check-Out:")); datePanel.add(outField);
+        double fee = r.peekPenaltyFee(LocalDate.now());
+        if (fee > 0) {
+            int proceed = JOptionPane.showConfirmDialog(this,
+                    String.format("Modifying this itinerary is past the free change window. A modification fee of $%.2f will be added to your new total.\n\nDo you wish to proceed?", fee),
+                    "Modification Fee Warning", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-        int dateConfirm = JOptionPane.showConfirmDialog(this, datePanel, "Step 1: Choose New Dates", JOptionPane.OK_CANCEL_OPTION);
+            if (proceed != JOptionPane.YES_OPTION) {
+                return; // User cancelled out of the warning
+            }
+        }
+
+        // STEP 1: Select Dates and Preferences
+        String currentIn = r.getDateRange().getCheckInDate().toString();
+        String currentOut = r.getDateRange().getCheckOutDate().toString();
+
+        JTextField inField = new JTextField(currentIn, 10);
+        JTextField outField = new JTextField(currentOut, 10);
+
+        JComboBox<Domain.Rooms.RoomType.FloorType> floorCombo = new JComboBox<>(Domain.Rooms.RoomType.FloorType.values());
+        JComboBox<Domain.Rooms.RoomType.BedType> bedCombo = new JComboBox<>(Domain.Rooms.RoomType.BedType.values());
+
+        Room fullRoom = reservationController.getRooms().stream()
+                .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
+                .findFirst()
+                .orElse(null);
+
+        // Set the dropdown defaults
+        if (fullRoom != null && fullRoom.getRoomType() != null) {
+            floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType());
+            bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType());
+        }
+
+        JPanel datePanel = new JPanel(new GridLayout(4, 2, 5, 5));
+        datePanel.add(new JLabel("New Check-In (YYYY-MM-DD):")); datePanel.add(inField);
+        datePanel.add(new JLabel("New Check-Out (YYYY-MM-DD):")); datePanel.add(outField);
+        datePanel.add(new JLabel("Theme / Floor:")); datePanel.add(floorCombo);
+        datePanel.add(new JLabel("Bed Type:")); datePanel.add(bedCombo);
+
+        int dateConfirm = JOptionPane.showConfirmDialog(this, datePanel, "Step 1: Choose Dates & Room Type", JOptionPane.OK_CANCEL_OPTION);
         if (dateConfirm != JOptionPane.OK_OPTION) return;
 
         try {
@@ -131,37 +175,78 @@ public class GuestReservationsUI extends JPanel {
             LocalDate out = LocalDate.parse(outField.getText().trim());
             DateRange newDates = new DateRange(in, out);
 
-            // STEP 2: Fetch Available Rooms
-            List<Room> availableRooms = reservationController.getAvailableRoomsForModification(newDates, r.getConfirmationNumber());
-            if (availableRooms.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No rooms available for those dates.", "Unavailable", JOptionPane.INFORMATION_MESSAGE);
+            Domain.Rooms.RoomType.FloorType prefFloor = (Domain.Rooms.RoomType.FloorType) floorCombo.getSelectedItem();
+            Domain.Rooms.RoomType.BedType prefBed = (Domain.Rooms.RoomType.BedType) bedCombo.getSelectedItem();
+
+            // STEP 2: Fetch Available Rooms and filter by selected type
+            List<Room> allAvailable = reservationController.getAvailableRoomsForModification(newDates, r.getConfirmationNumber());
+            List<Room> filteredRooms = new ArrayList<>();
+            for (Room room : allAvailable) {
+                if (room.getRoomType().getFloorType() == prefFloor && room.getRoomType().getBedType() == prefBed) {
+                    filteredRooms.add(room);
+                }
+            }
+
+            if (filteredRooms.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No rooms available matching those dates and preferences.", "Unavailable", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
-            // STEP 3: Select Room & Show Warnings
-            JComboBox<Integer> roomCombo = new JComboBox<>();
-            for (Room room : availableRooms) roomCombo.addItem(room.getRoomNumber());
+            // STEP 3: Select Room
+            JComboBox<String> roomCombo = new JComboBox<>();
+            for (Room room : filteredRooms) {
+                roomCombo.addItem("Room " + room.getRoomNumber() + " ($" + String.format("%.2f", room.getMaxDailyRate()) + "/night)");
+            }
 
-            double fee = r.peekPenaltyFee(LocalDate.now());
-
-            JPanel roomPanel = new JPanel(new GridLayout(4, 1, 5, 5));
+            JPanel roomPanel = new JPanel(new GridLayout(2, 1, 5, 5));
             roomPanel.add(new JLabel("Step 2: Choose a Room"));
             roomPanel.add(roomCombo);
-            if (fee > 0) {
-                JLabel feeLabel = new JLabel(String.format("<html><font color='red'>WARNING: A modification fee of $%.2f will be added to your new total.</font></html>", fee));
-                roomPanel.add(feeLabel);
-            }
 
             int finalConfirm = JOptionPane.showConfirmDialog(this, roomPanel, "Confirm Modification", JOptionPane.OK_CANCEL_OPTION);
             if (finalConfirm == JOptionPane.OK_OPTION) {
-                int selectedRoom = (Integer) roomCombo.getSelectedItem();
-                String result = reservationController.modifyGuestItinerary(r.getConfirmationNumber(), selectedRoom, newDates);
+                int selectedIdx = roomCombo.getSelectedIndex();
+                Room selectedRoom = filteredRooms.get(selectedIdx);
+
+                String result = reservationController.modifyGuestItinerary(r.getConfirmationNumber(), selectedRoom.getRoomNumber(), newDates);
                 JOptionPane.showMessageDialog(this, result, "Modification Complete", JOptionPane.INFORMATION_MESSAGE);
                 refreshList();
             }
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleUpdateDetails() {
+        int idx = reservationList.getSelectedIndex();
+        if (idx < 0) {
+            JOptionPane.showMessageDialog(this, "Please select a reservation first.", "None Selected", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Reservation r = rowCache.get(idx);
+
+        JTextField nameField = new JTextField(r.getGuestName(), 15);
+        JTextField ccField = new JTextField(r.getCardNumber(), 15); // Or getCreditCardNumber() depending on your exact getter
+
+        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+        panel.add(new JLabel("Guest Name:"));
+        panel.add(nameField);
+        panel.add(new JLabel("Credit Card #:"));
+        panel.add(ccField);
+
+        int confirm = JOptionPane.showConfirmDialog(this, panel, "Update Personal Details", JOptionPane.OK_CANCEL_OPTION);
+        if (confirm == JOptionPane.OK_OPTION) {
+            try {
+                reservationController.modifyGuestPersonalDetails(
+                        r.getConfirmationNumber(),
+                        nameField.getText().trim(),
+                        ccField.getText().trim()
+                );
+                JOptionPane.showMessageDialog(this, "Details updated successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                refreshList();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Update Failed", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }
