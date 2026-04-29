@@ -67,17 +67,23 @@ public class CombinedBillUI extends JPanel {
         north.add(title);
         add(north, BorderLayout.NORTH);
 
-        JPanel center = new JPanel(new GridLayout(2, 1, 8, 8));
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
 
         JPanel resPanel = new JPanel(new BorderLayout(6, 6));
         resPanel.add(new JLabel("Reservations (room charges before tax)"), BorderLayout.NORTH);
-        resPanel.add(new JScrollPane(reservationsTable), BorderLayout.CENTER);
+        JScrollPane resScroll = new JScrollPane(reservationsTable);
+        resScroll.setPreferredSize(new Dimension(600, 160));
+        resPanel.add(resScroll, BorderLayout.CENTER);
 
         JPanel purPanel = new JPanel(new BorderLayout(6, 6));
         purPanel.add(new JLabel("Purchases (subtotal; store tax not included in combined total)"), BorderLayout.NORTH);
-        purPanel.add(new JScrollPane(purchasesTable), BorderLayout.CENTER);
+        JScrollPane purScroll = new JScrollPane(purchasesTable);
+        purScroll.setPreferredSize(new Dimension(600, 160));
+        purPanel.add(purScroll, BorderLayout.CENTER);
 
         center.add(resPanel);
+        center.add(Box.createVerticalStrut(8));
         center.add(purPanel);
         add(center, BorderLayout.CENTER);
 

@@ -117,7 +117,6 @@ public class ClerkReservationsUI extends JPanel {
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         JButton backBtn = new JButton("← Back");
-        JButton refreshBtn = new JButton("Refresh list");
         JButton newBtn = new JButton("New (clear form)");
         JButton previewBtn = new JButton("Calculate cost");
         JButton createBtn = new JButton("Confirm new reservation");
@@ -126,7 +125,6 @@ public class ClerkReservationsUI extends JPanel {
         JButton guestBillBtn = new JButton("View guest bill");
 
         backBtn.addActionListener(e -> onBack.run());
-        refreshBtn.addActionListener(e -> refreshList());
         newBtn.addActionListener(e -> clearFormForNew());
         previewBtn.addActionListener(e -> handlePreview());
         createBtn.addActionListener(e -> handleCreateConfirm());
@@ -135,7 +133,6 @@ public class ClerkReservationsUI extends JPanel {
         guestBillBtn.addActionListener(e -> handleViewGuestBill());
 
         buttons.add(backBtn);
-        buttons.add(refreshBtn);
         buttons.add(newBtn);
         buttons.add(previewBtn);
         buttons.add(createBtn);
@@ -395,7 +392,8 @@ public class ClerkReservationsUI extends JPanel {
             bill.refresh();
             dlg.setContentPane(bill);
             dlg.pack();
-            dlg.setSize(Math.max(dlg.getWidth(), 700), Math.max(dlg.getHeight(), 520));
+            // Keep the dialog compact; CombinedBillUI caps table viewport heights.
+            dlg.setSize(Math.max(dlg.getWidth(), 640), Math.max(dlg.getHeight(), 280));
             dlg.setLocationRelativeTo(owner);
             dlg.setVisible(true);
         } catch (IllegalStateException | IllegalArgumentException ex) {
