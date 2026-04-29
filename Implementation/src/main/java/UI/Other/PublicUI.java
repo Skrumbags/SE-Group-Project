@@ -1,9 +1,9 @@
-package UI;
+package UI.Other;
 
 import Controllers.SearchController;
 import Controllers.UserController;
 import Domain.People.UserSession;
-import UI.User.AddUserUI;
+import UI.Guest.CreateAccountUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -37,6 +37,22 @@ public class PublicUI extends JPanel {
         JPanel landing = new JPanel(new BorderLayout(10, 20));
         landing.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
+        CreateAccountUI createAccountPanel = new CreateAccountUI(userController);
+        createAccountPanel.setBackAction(e -> bodyCards.show(body, "LOGIN"), "← Back to login");
+
+        LoginUI loginPanel = new LoginUI(
+                userController,
+                userSession,
+                onSessionChanged,
+                onAdminLogin,
+                onClerkLogin,
+                onGuestLogin,
+                () -> {
+                    createAccountPanel.refresh();
+                    bodyCards.show(body, "ADD_USER");
+                }
+        );
+
         JPanel northStack = new JPanel(new GridLayout(2, 1, 0, 6));
         JLabel welcome = new JLabel("Welcome to Hotel Reservation App", SwingConstants.CENTER);
         welcome.setFont(new Font("SansSerif", Font.BOLD, 22));
@@ -54,29 +70,22 @@ public class PublicUI extends JPanel {
                             + range.getCheckInDate() + " → " + range.getCheckOutDate() + " (checkout morning).",
                     "Sign in to reserve",
                     JOptionPane.INFORMATION_MESSAGE);
+            loginPanel.refresh();
             bodyCards.show(body, "LOGIN");
         }), BorderLayout.SOUTH);
 
-        AddUserUI addUserPanel = new AddUserUI(userController);
-        addUserPanel.setBackAction(e -> bodyCards.show(body, "LOGIN"), "← Back to login");
 
-        LoginUI loginPanel = new LoginUI(
-                userController,
-                userSession,
-                onSessionChanged,
-                onAdminLogin,
-                onClerkLogin,
-                onGuestLogin,
-                () -> bodyCards.show(body, "ADD_USER")
-        );
 
         body.add(landing, "LANDING");
         body.add(loginPanel, "LOGIN");
-        body.add(addUserPanel, "ADD_USER");
+        body.add(createAccountPanel, "ADD_USER");
         add(body, BorderLayout.CENTER);
 
         homeBtn.addActionListener(e -> bodyCards.show(body, "LANDING"));
-        loginNavBtn.addActionListener(e -> bodyCards.show(body, "LOGIN"));
+        loginNavBtn.addActionListener(e -> {
+            loginPanel.refresh();
+            bodyCards.show(body, "LOGIN");
+        });
     }
 
     public void showLanding() {

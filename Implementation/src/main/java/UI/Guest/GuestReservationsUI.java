@@ -1,4 +1,4 @@
-package UI.User;
+package UI.Guest;
 
 import Controllers.ReservationController;
 import Domain.People.UserSession;

@@ -1,4 +1,4 @@
-package UI;
+package UI.Other;
 
 import Controllers.UserController;
 import Domain.People.Admin;
@@ -91,5 +91,11 @@ public class LoginUI extends JPanel {
         gbc.gridy = 4;
         gbc.gridwidth = 2;
         add(createUser, gbc);
+    }
+
+    public void refresh() {
+        usernameField.setText("");
+        passwordField.setText("");
+        errorLabel.setText(" ");
     }
 }

@@ -204,6 +204,12 @@ public class ClerkReservationsUI extends JPanel {
         }
     }
 
+    public void refresh() {
+        refreshRoomCombo();
+        refreshList();
+        searchField.setText("");
+    }
+
     private static String formatRow(Reservation r) {
         return r.getConfirmationNumber()
                 + " | Room " + r.getRoom().getRoomNumber()

@@ -97,5 +97,12 @@ public class AddCA_UI extends JPanel {
         backButton.setLabel("← Back to Welcome");
         backButton.setVisible(true);
     }
+
+    public void refresh() {
+        employeeID.setText("");
+        usernameField.setText("");
+        passwordField.setText("");
+        nameField.setText("");
+    }
 }
 

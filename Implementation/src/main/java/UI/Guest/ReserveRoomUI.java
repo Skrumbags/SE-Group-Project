@@ -1,4 +1,4 @@
-package UI.User;
+package UI.Guest;
 
 import Domain.People.UserSession;
 import Domain.Reservations.ReservationSummary;
@@ -208,6 +208,22 @@ public class ReserveRoomUI extends JPanel {
         backButton.addActionListener(goBack);
         backButton.setLabel(backMessage);
         backButton.setVisible(true);
+    }
+
+    public void refresh() {
+        currentPreview = null;
+        refreshRoomOptions();
+        guestNameField.setText("");
+        creditCardField.setText("");
+        resetDateField(checkInDateField);
+        resetDateField(checkOutDateField);
+    }
+
+    private void resetDateField(JTextField field) {
+        Color inactiveFg = UIManager.getColor("TextField.inactiveForeground");
+        Color hintColor = inactiveFg != null ? inactiveFg : Color.GRAY;
+        field.setText(DATE_PLACEHOLDER);
+        field.setForeground(hintColor);
     }
 }
 
