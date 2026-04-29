@@ -107,6 +107,23 @@ public class MasterUI {
             addRoomDialog.setVisible(true);
         };
 
+        Runnable openClerkModifyRoomDialog = () -> {
+            if (!(userSession.getCurrentUser() instanceof Clerk)) {
+                JOptionPane.showMessageDialog(frame,
+                        "Only clerks can modify rooms. Sign in as a clerk first.",
+                        "Modify room",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            JDialog dlg = new JDialog(frame, "Modify room", true);
+            ModifyRoomUI form = new ModifyRoomUI(searchController.getRoomService());
+            form.setBackAction(e -> dlg.dispose(), "Close");
+            dlg.setContentPane(form);
+            dlg.pack();
+            dlg.setLocationRelativeTo(frame);
+            dlg.setVisible(true);
+        };
+
         UserService userService = userController.getUserService();
 
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
@@ -123,6 +140,7 @@ public class MasterUI {
 
         JPanel adminPanel = new AdminUI(
                 userSession,
+                userController,
                 () -> adminLayout.show(adminShell, "ADD_USER_CLERK"),
                 () -> adminLayout.show(adminShell, "ADMIN")
         );
@@ -132,6 +150,7 @@ public class MasterUI {
         JPanel clerkPanel = new ClerkUI(
                 userSession,
                 openClerkAddRoomDialog,
+                openClerkModifyRoomDialog,
                 () -> {
                     clerkReservationsPanel.prepareShow();
                     clerkLayout.show(clerkShell, "CLERK_RES");

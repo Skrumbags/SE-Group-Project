@@ -68,6 +68,16 @@ public class UserSession {
         return (Clerk) currentUser;
     }
 
+    public Admin requireLoggedInAdmin() {
+        if (currentUser == null) {
+            throw new IllegalStateException("You must be logged in.");
+        }
+        if (!(currentUser instanceof Admin)) {
+            throw new IllegalStateException("Admin access required.");
+        }
+        return (Admin) currentUser;
+    }
+
     public void setPendingReservation(PendingReservation pending) {
         this.pendingReservation = pending;
     }
