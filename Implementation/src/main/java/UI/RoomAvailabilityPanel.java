@@ -113,6 +113,11 @@ public class RoomAvailabilityPanel extends JPanel {
                 LocalDate start = LocalDate.parse((String) beginDate.getValue(), BAR_DATE);
                 LocalDate end   = LocalDate.parse((String) endDate.getValue(), BAR_DATE);
                 int numGuests   = Integer.parseInt(guestsField.getText().trim());
+                if (numGuests <= 0) {
+                    JOptionPane.showMessageDialog(this, "Guests must be at least 1.",
+                            "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
 
                 long span = ChronoUnit.DAYS.between(start, end);
                 if (span <= 0) {
