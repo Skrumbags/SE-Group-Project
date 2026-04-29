@@ -63,12 +63,13 @@ public class UserService {
         if (username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
+        if (exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Guest guest = new Guest(username, encoded, name, phone, email);
-        if (!users.add(guest)) {
-            return Result.DUPLICATE_USERNAME;
-        }
+        users.add(guest);
         if (userDb != null) {
             try {
                 long id = userDb.saveGuest(username, encoded, name, phone, email);
@@ -84,12 +85,13 @@ public class UserService {
         if (employeeId < 0 || username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
+        if (exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Clerk clerk = new Clerk(employeeId, username, encoded, name);
-        if (!users.add(clerk)) {
-            return Result.DUPLICATE_USERNAME;
-        }
+        users.add(clerk);
         if (userDb != null) {
             try {
                 long id = userDb.saveStaff(username, encoded, name, employeeId, "CLERK");
@@ -105,12 +107,13 @@ public class UserService {
         if (employeeId < 0 || username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
+        if (exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Admin admin = new Admin(employeeId, username, encoded, name);
-        if (!users.add(admin)) {
-            return Result.DUPLICATE_USERNAME;
-        }
+        users.add(admin);
         if (userDb != null) {
             try {
                 long id = userDb.saveStaff(username, encoded, name, employeeId, "ADMIN");

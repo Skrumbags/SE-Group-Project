@@ -50,6 +50,31 @@ public class AddCA_UI extends JPanel {
         String password = new String(passwordField.getPassword()).trim();
         String name     = nameField.getText().trim();
 
+        if (username.isBlank() || password.isBlank() || name.isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    "Username, password, and full name are required.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (username.contains(" ")) {
+            JOptionPane.showMessageDialog(this,
+                    "Username cannot contain spaces.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (password.length() < 4) {
+            JOptionPane.showMessageDialog(this,
+                    "Password must be at least 4 characters.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (userController.exists(username)) {
+            JOptionPane.showMessageDialog(this,
+                    "Username \"" + username + "\" is already taken. Please choose another.",
+                    "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         UserService.Result result = userController.addClerk(id, username, password, name);
 
         switch (result) {
