@@ -351,6 +351,12 @@ public class ReservationService {
             if (r.getGuestUserId() == null) {
                 throw new IllegalArgumentException("Reservation has no linked guest account; cannot check in.");
             }
+            LocalDate today = LocalDate.now();
+            if (today.isBefore(r.getDateRange().getCheckInDate())) {
+                throw new IllegalArgumentException(
+                        "Check-in is only allowed on or after the reservation check-in date ("
+                                + r.getDateRange().getCheckInDate() + ").");
+            }
             sqlite.setReservationActive(confirmationNumber, true);
             loadList();
         } catch (SQLException e) {
