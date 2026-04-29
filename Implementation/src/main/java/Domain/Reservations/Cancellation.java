@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 /**
- * GRASP: Information Expert for cancellation rules.
+ * GRASP: Information Expert for cancellation rules and penalty fee calculations.
  */
 public class Cancellation {
     private final Reservation reservation;
@@ -22,18 +22,24 @@ public class Cancellation {
     public Cancellation(Reservation reservation, LocalDate cancelDate) {
         this.reservation = reservation;
         this.cancelDate = cancelDate;
-        this.penaltyFee = calculatePenalty();
-    }
 
-    private double calculatePenalty() {
         // Requirement: Must be prior to reservation start date
         if (!cancelDate.isBefore(reservation.getDateRange().getCheckInDate())) {
             throw new IllegalStateException("Reservations can only be cancelled prior to the check-in date.");
         }
 
-        long daysSinceCreation = ChronoUnit.DAYS.between(reservation.getCreatedDate(), cancelDate);
+        // Use the centralized penalty calculator
+        this.penaltyFee = calculatePenaltyFee(reservation, cancelDate);
+    }
 
-        // Requirement: Free cancellation if within 2 days of making the reservation
+    /**
+     * Centralized logic for calculating penalty fees based on action dates.
+     * Used for both cancellations and itinerary modifications.
+     */
+    public static double calculatePenaltyFee(Reservation reservation, LocalDate actionDate) {
+        long daysSinceCreation = ChronoUnit.DAYS.between(reservation.getCreatedDate(), actionDate);
+
+        // Requirement: Free cancellation/modification if within 2 days of making the reservation
         if (daysSinceCreation <= 2) {
             return 0.0;
         }
@@ -44,5 +50,13 @@ public class Cancellation {
 
     public double getPenaltyFee() {
         return penaltyFee;
+    }
+
+    public Reservation getReservation() {
+        return reservation;
+    }
+
+    public LocalDate getCancelDate() {
+        return cancelDate;
     }
 }

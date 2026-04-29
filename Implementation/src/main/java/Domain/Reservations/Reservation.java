@@ -23,34 +23,34 @@ public class Reservation {
     private DateRange dateRange;
     private String guestName;
     private String cardNumber;
-    private boolean active;
-    private double baseCost;
-    private double extraFee;
+
+
     /** {@link User#getDatabaseId()} for the guest, when known. */
     private final Long guestUserId;
     private final LocalDate createdDate;
+    private boolean active;
+    private double totalCost;
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
-                       String guestName, String cardNumber, double baseCost, Long guestUserId) {
+                       String guestName, String cardNumber, double totalCost, Long guestUserId) {
         this.confirmationNumber = confirmationNumber;
         this.room = room;
         this.dateRange = dateRange;
         this.guestName = guestName;
         this.cardNumber = cardNumber;
         this.active = false;
-        this.baseCost = baseCost;
         this.guestUserId = guestUserId;
         this.createdDate = LocalDate.now();
-        this.extraFee = 0;
+        this.totalCost = totalCost;
     }
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
-                       String guestName, String cardNumber, double baseCost, Long guestUserId, LocalDate createdDate) {
-        this(confirmationNumber, room, dateRange, guestName, cardNumber, baseCost, guestUserId, createdDate, false);
+                       String guestName, String cardNumber, double totalCost,Long guestUserId, LocalDate createdDate) {
+        this(confirmationNumber, room, dateRange, guestName, cardNumber, totalCost, guestUserId, createdDate, false);
     }
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
-                       String guestName, String cardNumber, double baseCost, Long guestUserId, LocalDate createdDate,
+                       String guestName, String cardNumber, double totalCost, Long guestUserId, LocalDate createdDate,
                        boolean active) {
         this.confirmationNumber = confirmationNumber;
         this.room = room;
@@ -58,10 +58,9 @@ public class Reservation {
         this.guestName = guestName;
         this.cardNumber = cardNumber;
         this.active = active;
-        this.baseCost = baseCost;
         this.guestUserId = guestUserId;
         this.createdDate = createdDate;
-        this.extraFee = 0;
+        this.totalCost = totalCost;
     }
 
     public String getConfirmationNumber() {
@@ -93,12 +92,12 @@ public class Reservation {
     }
 
     public double getTotalCost() {
-        return baseCost + extraFee;
+        return totalCost;
     }
 
-    public double getExtraFee() { return extraFee; }
+    public double getExtraFee() { return totalCost - room.getMaxDailyRate() * ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate()); }
 
-    public double getBaseCost() { return baseCost; }
+    public double getBaseCost() { return room.getMaxDailyRate() * ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate()); }
 
     public Long getGuestUserId() {
         return guestUserId;
@@ -109,17 +108,12 @@ public class Reservation {
     }
 
     public double getSingleNightRate() {
-        long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
-        if (nights <= 0) nights = 1; // Safeguard against same-day errors
-        return baseCost / nights;
+        return room.getMaxDailyRate();
     }
 
     public double peekPenaltyFee(java.time.LocalDate actionDate) {
-        long daysSinceCreation = java.time.temporal.ChronoUnit.DAYS.between(createdDate, actionDate);
-        if (daysSinceCreation > 2) {
-            return getSingleNightRate() * 0.80;
-        }
-        return 0.0;
+        // GRASP: Delegate to the Information Expert (Cancellation)
+        return Cancellation.calculatePenaltyFee(this, actionDate);
     }
 
     public void updatePersonalDetails(String newName, String newCard) {
@@ -136,13 +130,10 @@ public class Reservation {
     }
 
     public void modifyItinerary(Room newRoom, DateRange newDates, LocalDate modificationDate) {
-        long daysSinceCreation = java.time.temporal.ChronoUnit.DAYS.between(createdDate, modificationDate);
 
-        // 1. Calculate the penalty (if past 2 days, charge 80% of OLD single night rate)
-        double penalty = 0.0;
-        if (daysSinceCreation > 2) {
-            penalty += this.getSingleNightRate() * 0.80;
-        }
+        // 1. Calculate the penalty by querying the Information Expert
+        double oldFee = getExtraFee();
+        double penalty = Cancellation.calculatePenaltyFee(this, modificationDate);
 
         // 2. Calculate new base cost
         long newNights = java.time.temporal.ChronoUnit.DAYS.between(newDates.getCheckInDate(), newDates.getCheckOutDate());
@@ -152,7 +143,6 @@ public class Reservation {
         // 3. Apply changes
         this.room = newRoom;
         this.dateRange = newDates;
-        this.baseCost = newBaseCost;
-        this.extraFee += penalty;
+        this.totalCost = newBaseCost + oldFee + penalty;
     }
 }
