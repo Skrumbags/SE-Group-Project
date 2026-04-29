@@ -163,7 +163,11 @@ public class MasterUI {
         guestSearchBack.addActionListener(e -> guestLayout.show(guestShell, "HOME"));
         guestSearchNorth.add(guestSearchBack);
         guestSearch.add(guestSearchNorth, BorderLayout.NORTH);
-        guestSearch.add(new RoomAvailabilityPanel(searchController), BorderLayout.CENTER);
+        guestSearch.add(new RoomAvailabilityPanel(searchController, (room, range) -> {
+            reservePanel.refreshRoomOptions();
+            reservePanel.applyPreselection(room.getRoomNumber(), range.getCheckInDate(), range.getCheckOutDate());
+            guestLayout.show(guestShell, "RESERVE");
+        }), BorderLayout.CENTER);
 
         guestShell.add(guestHomeWrap, "HOME");
         guestShell.add(guestSearch, "SEARCH");
@@ -191,22 +195,19 @@ public class MasterUI {
             sessionStrip.repaint();
         };
 
-        LoginController loginController = new LoginController(
-                userController.getUserCatalog(),
-                userController.getSqliteUserPersistence());
-
         PublicUI publicUI = new PublicUI(
                 searchController,
-                loginController,
                 userController,
                 userSession,
                 refreshSessionUi,
                 () -> {
+                    userSession.clearPendingReservation();
                     refreshSessionUi.run();
                     adminLayout.show(adminShell, "ADMIN");
                     shellLayout.show(shellRoot, "ADMIN");
                 },
                 () -> {
+                    userSession.clearPendingReservation();
                     refreshSessionUi.run();
                     clerkLayout.show(clerkShell, "CLERK");
                     shellLayout.show(shellRoot, "CLERK");
@@ -216,6 +217,12 @@ public class MasterUI {
                     rebuildGuestHome.run();
                     guestLayout.show(guestShell, "HOME");
                     shellLayout.show(shellRoot, "GUEST");
+                    UserSession.PendingReservation pending = userSession.takePendingReservation();
+                    if (pending != null) {
+                        reservePanel.refreshRoomOptions();
+                        reservePanel.applyPreselection(pending.roomNumber(), pending.checkIn(), pending.checkOut());
+                        guestLayout.show(guestShell, "RESERVE");
+                    }
                 }
         );
 

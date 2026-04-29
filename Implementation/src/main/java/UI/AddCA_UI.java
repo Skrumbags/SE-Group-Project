@@ -1,6 +1,7 @@
 package UI;
 
 import Controllers.UserController;
+import Domain.Services.UserService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -49,7 +50,7 @@ public class AddCA_UI extends JPanel {
         String password = new String(passwordField.getPassword()).trim();
         String name     = nameField.getText().trim();
 
-        UserController.Result result = userController.addClerk(id, username, password, name);
+        UserService.Result result = userController.addClerk(id, username, password, name);
 
         switch (result) {
             case SUCCESS ->

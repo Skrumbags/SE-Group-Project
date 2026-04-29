@@ -10,10 +10,10 @@ package Driver;
 
 // Imports for Room + RoomType
 import Domain.People.*;
-import Domain.Rooms.RoomCatalog;
 import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
 import Domain.Services.ShoppingService;
+import Domain.Services.UserService;
 import TechnicalServices.Persistence.SqliteReservationPersistence;
 import TechnicalServices.Persistence.SqliteStorePersistence;
 import UI.MasterUI;
@@ -46,11 +46,10 @@ public class Driver {
         } catch (Exception e) {}
 
         Path db = Path.of("data", "database.db");
-        RoomCatalog roomCatalog = new RoomCatalog();
-        UserCatalog userCatalog = new UserCatalog();
-        RoomService roomService = new RoomService(roomCatalog, db);
+        RoomService roomService = new RoomService(db);
         ReservationService resService = new ReservationService(db);
-        UserController userController = new UserController(userCatalog, db);
+        UserService userService = new UserService(db);
+        UserController userController = new UserController(userService);
         SqliteStorePersistence storeDb = new SqliteStorePersistence(db);
         SqliteReservationPersistence reservationDb = new SqliteReservationPersistence(db);
         reservationDb.initialize();
@@ -60,7 +59,7 @@ public class Driver {
         UserSession userSession = new UserSession();
         userSession.logout();
 
-        if (userCatalog.findByUsername("Matt") == null) {
+        if (userController.findByUsername("Matt") == null) {
             userController.addGuest("Matt", "testpw", "Matt Freeman", "911", "matt_freeman2@baylor.edu");
         }
         SearchController searchController = new SearchController(roomService, resService);
@@ -68,8 +67,6 @@ public class Driver {
                 new ReservationController(roomService, resService, userSession, userController);
         ShoppingController shoppingController =
                 new ShoppingController(shoppingService, resService, userSession);
-
-        seedStoreProductsIfEmpty(storeDb);
 
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
@@ -91,18 +88,4 @@ public class Driver {
 
     }
 
-    private static void seedStoreProductsIfEmpty(SqliteStorePersistence storeDb) {
-        try {
-            storeDb.initialize();
-            if (storeDb.countProducts() > 0) {
-                return;
-            }
-            storeDb.createProduct("TSHIRT-001", "Hotel T-Shirt", "Soft cotton tee with logo", 19.99, 25, true);
-            storeDb.createProduct("MUG-001", "Coffee Mug", "Ceramic mug", 9.99, 40, true);
-            storeDb.createProduct("SOAP-001", "Artisan Soap", "Local handmade soap bar", 6.50, 60, true);
-            storeDb.createProduct("HAT-001", "Baseball Cap", "Adjustable cap with logo", 14.00, 30, true);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to seed store products", e);
-        }
-    }
 }

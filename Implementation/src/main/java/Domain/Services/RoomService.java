@@ -11,7 +11,6 @@ package Domain.Services;
 
 import TechnicalServices.Persistence.SchemaInstaller;
 import TechnicalServices.Persistence.SqliteRoomPersistence;
-import Domain.Rooms.RoomCatalog;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
 
@@ -20,23 +19,24 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RoomService {
-    private final RoomCatalog catalog;
     private final SqliteRoomPersistence roomDb;
+    private List<Room> rooms;
 
-    public RoomService(RoomCatalog catalog) {
-        this.catalog = catalog;
+    public RoomService(List<Room> rooms) {
+        this.rooms = rooms;
         this.roomDb = null;
     }
 
     /**
-     * Applies schema (if needed), loads {@link Rooms} from SQLite into the catalog, and persists new adds.
+     * Applies schema (if needed), loads {@link Room} from SQLite into the catalog, and persists new adds.
      * Use the same {@code dbPath} as {@link ReservationService} so rooms and reservations share one database.
      */
-    public RoomService(RoomCatalog catalog, Path sqliteDatabaseFile) {
-        this.catalog = catalog;
+    public RoomService(Path sqliteDatabaseFile) {
+        this.rooms = new ArrayList<>();
         try {
             if (sqliteDatabaseFile.getParent() != null) {
                 Files.createDirectories(sqliteDatabaseFile.getParent());
@@ -46,36 +46,35 @@ public class RoomService {
             }
             this.roomDb = new SqliteRoomPersistence(sqliteDatabaseFile);
             for (Room r : roomDb.findAll()) {
-                catalog.addRoom(r);
+                rooms.add(r);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to load rooms from SQLite at " + sqliteDatabaseFile, e);
         }
     }
 
-    public RoomCatalog getCatalog() {
-        return catalog;
+    public List<Room> getRooms() {
+        return rooms;
     }
 
     public List<Room> searchRooms(RoomType roomType, int numGuests) {
-        return catalog.getRooms().stream()
+        return rooms.stream()
                 .filter(r -> r.getRoomType().equals(roomType))
                 .toList();
     }
 
     public Room findRoom(int roomNumber) {
-        return catalog.findRoom(roomNumber);
-    }
-
-    public List<Room> getRooms() {
-        return catalog.getRooms();
+        return rooms.stream()
+                .filter(r -> r.getRoomNumber() == roomNumber)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
      * Adds a room to the catalog and, when this service is DB-backed, inserts/updates the {@code Rooms} row.
      */
     public boolean addRoom(Room room) {
-        if (!catalog.addRoom(room)) {
+        if (room == null || rooms.contains(room)) {
             return false;
         }
         if (roomDb != null) {

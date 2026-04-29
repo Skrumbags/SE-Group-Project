@@ -7,12 +7,20 @@
 
 package Domain.People;
 
+import java.time.LocalDate;
+
 /**
  * Holds the active session user. Call {@link #login(User)} after successful login;
  * guest-only flows should use {@link #requireLoggedInGuest()}.
  */
 public class UserSession {
+    /**
+     * Room and dates chosen from search before sign-in; consumed when a guest session starts.
+     */
+    public record PendingReservation(int roomNumber, LocalDate checkIn, LocalDate checkOut) {}
+
     private User currentUser;
+    private PendingReservation pendingReservation;
 
     public void login(User user) {
         this.currentUser = user;
@@ -58,5 +66,20 @@ public class UserSession {
             throw new IllegalStateException("Clerk access required.");
         }
         return (Clerk) currentUser;
+    }
+
+    public void setPendingReservation(PendingReservation pending) {
+        this.pendingReservation = pending;
+    }
+
+    public void clearPendingReservation() {
+        this.pendingReservation = null;
+    }
+
+    /** Returns stored intent and clears it, or {@code null} if none. */
+    public PendingReservation takePendingReservation() {
+        PendingReservation p = pendingReservation;
+        pendingReservation = null;
+        return p;
     }
 }

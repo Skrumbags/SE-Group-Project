@@ -1,5 +1,6 @@
 package UI;
 import Controllers.UserController;
+import Domain.Services.UserService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,7 +43,7 @@ public class AddUserUI extends JPanel {
         String phone    = phoneField.getText().trim();
         String email    = emailField.getText().trim();
 
-        UserController.Result result = userController.addGuest(username, password, name, phone, email);
+        UserService.Result result = userController.addGuest(username, password, name, phone, email);
 
         switch (result) {
             case SUCCESS ->

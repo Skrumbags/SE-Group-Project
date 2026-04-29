@@ -180,8 +180,17 @@ public class ClerkReservationsUI extends JPanel {
         setDateField(checkInField, r.getDateRange().getCheckInDate());
         setDateField(checkOutField, r.getDateRange().getCheckOutDate());
         guestNameField.setText(r.getGuestName());
-        creditCardField.setText("");
-        guestUsernameField.setText("");
+
+        creditCardField.setText(r.getMaskedCardNumber());
+
+        if (r.getGuestUserId() != null) {
+            // Assuming you have this method in UserController to look up by ID
+            String username = reservationController.resolveUsernameById(r.getGuestUserId());
+            guestUsernameField.setText(username);
+        } else {
+            guestUsernameField.setText("");
+        }
+
         currentPreview = null;
     }
 
