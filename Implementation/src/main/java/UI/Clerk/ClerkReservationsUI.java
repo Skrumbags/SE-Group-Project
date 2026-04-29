@@ -1,11 +1,13 @@
 package UI.Clerk;
 
 import Controllers.ReservationController;
+import Controllers.ShoppingController;
 import Domain.People.UserSession;
 import Domain.Reservations.Reservation;
 import Domain.Reservations.ReservationSummary;
 import Domain.Rooms.Room;
 import Domain.Shared.DateRange;
+import UI.Shopping.CombinedBillUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,6 +25,7 @@ public class ClerkReservationsUI extends JPanel {
 
     private final UserSession userSession;
     private final ReservationController reservationController;
+    private final ShoppingController shoppingController;
     private final Runnable onBack;
 
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
@@ -41,9 +44,10 @@ public class ClerkReservationsUI extends JPanel {
     private ReservationSummary currentPreview;
 
     public ClerkReservationsUI(UserSession userSession, ReservationController reservationController,
-                               Runnable onBack) {
+                               ShoppingController shoppingController, Runnable onBack) {
         this.userSession = userSession;
         this.reservationController = reservationController;
+        this.shoppingController = shoppingController;
         this.onBack = onBack;
 
         setLayout(new BorderLayout(8, 8));
@@ -110,6 +114,7 @@ public class ClerkReservationsUI extends JPanel {
         JButton createBtn = new JButton("Confirm new reservation");
         JButton saveBtn = new JButton("Save changes");
         JButton deleteBtn = new JButton("Delete selected");
+        JButton guestBillBtn = new JButton("View guest bill");
 
         backBtn.addActionListener(e -> onBack.run());
         refreshBtn.addActionListener(e -> refreshList());
@@ -118,6 +123,7 @@ public class ClerkReservationsUI extends JPanel {
         createBtn.addActionListener(e -> handleCreateConfirm());
         saveBtn.addActionListener(e -> handleSave());
         deleteBtn.addActionListener(e -> handleDelete());
+        guestBillBtn.addActionListener(e -> handleViewGuestBill());
 
         buttons.add(backBtn);
         buttons.add(refreshBtn);
@@ -126,6 +132,7 @@ public class ClerkReservationsUI extends JPanel {
         buttons.add(createBtn);
         buttons.add(saveBtn);
         buttons.add(deleteBtn);
+        buttons.add(guestBillBtn);
 
         JPanel south = new JPanel(new BorderLayout(4, 4));
         south.add(form, BorderLayout.CENTER);
@@ -323,6 +330,39 @@ public class ClerkReservationsUI extends JPanel {
             clearFormForNew();
         } catch (IllegalStateException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Cannot delete", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleViewGuestBill() {
+        try {
+            userSession.requireLoggedInClerk();
+            int idx = reservationList.getSelectedIndex();
+            if (idx < 0 || idx >= rowCache.size()) {
+                JOptionPane.showMessageDialog(this,
+                        "Select a reservation in the list.",
+                        "Nothing selected",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            Reservation r = rowCache.get(idx);
+            if (r.getGuestUserId() == null) {
+                JOptionPane.showMessageDialog(this,
+                        "This reservation has no linked guest account. Set guest username, save, then try again.",
+                        "No guest account",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            JDialog dlg = new JDialog(owner, "Guest bill", Dialog.ModalityType.APPLICATION_MODAL);
+            CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, r.getGuestUserId());
+            bill.refresh();
+            dlg.setContentPane(bill);
+            dlg.pack();
+            dlg.setSize(Math.max(dlg.getWidth(), 700), Math.max(dlg.getHeight(), 520));
+            dlg.setLocationRelativeTo(owner);
+            dlg.setVisible(true);
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Cannot open bill", JOptionPane.ERROR_MESSAGE);
         }
     }
 

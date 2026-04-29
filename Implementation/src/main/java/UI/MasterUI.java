@@ -160,6 +160,7 @@ public class MasterUI {
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
                 userSession,
                 reservationController,
+                shoppingController,
                 () -> clerkLayout.show(clerkShell, "CLERK")
         );
 
