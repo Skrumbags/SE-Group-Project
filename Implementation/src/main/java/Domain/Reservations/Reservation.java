@@ -13,16 +13,20 @@ import Domain.People.User;
 import Domain.Rooms.Room;
 import Domain.Shared.DateRange;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+
 public class Reservation {
 
     private final String confirmationNumber;
     private final Room room;
     private final DateRange dateRange;
-    private final String guestName;
-    private final String maskedCardNumber;
+    private String guestName;
+    private String maskedCardNumber;
     private final double totalCost;
     /** {@link User#getDatabaseId()} for the guest, when known. */
     private final Long guestUserId;
+    private final LocalDate createdDate;
 
     public Reservation(String confirmationNumber, Room room, DateRange dateRange,
                        String guestName, String maskedCardNumber, double totalCost, Long guestUserId) {
@@ -33,6 +37,19 @@ public class Reservation {
         this.maskedCardNumber = maskedCardNumber;
         this.totalCost = totalCost;
         this.guestUserId = guestUserId;
+        this.createdDate = LocalDate.now();
+    }
+
+    public Reservation(String confirmationNumber, Room room, DateRange dateRange,
+                       String guestName, String maskedCardNumber, double totalCost, Long guestUserId, LocalDate createdDate) {
+        this.confirmationNumber = confirmationNumber;
+        this.room = room;
+        this.dateRange = dateRange;
+        this.guestName = guestName;
+        this.maskedCardNumber = maskedCardNumber;
+        this.totalCost = totalCost;
+        this.guestUserId = guestUserId;
+        this.createdDate = createdDate;
     }
 
     public String getConfirmationNumber() {
@@ -61,5 +78,28 @@ public class Reservation {
 
     public Long getGuestUserId() {
         return guestUserId;
+    }
+
+    public LocalDate getCreatedDate() {
+        return createdDate;
+    }
+
+    public double getSingleNightRate() {
+        long nights = ChronoUnit.DAYS.between(dateRange.getCheckInDate(), dateRange.getCheckOutDate());
+        if (nights <= 0) nights = 1; // Safeguard against same-day errors
+        return totalCost / nights;
+    }
+
+    public void updatePersonalDetails(String newName, String newCard) {
+        String masked = null;
+        if (newCard != null && !newCard.isBlank()) {
+            String err = BookingValidation.validateCreditCard(newCard);
+            if (err != null) {
+                throw new IllegalArgumentException(err);
+            }
+            masked = BookingValidation.maskCardNumber(newCard);
+        }
+        if (newName != null && !newName.isBlank()) this.guestName = newName;
+        if (masked != null && !masked.isBlank()) this.maskedCardNumber = masked;
     }
 }

@@ -114,4 +114,8 @@ public class ReservationController {
         }
         return guest.getDatabaseId();
     }
+
+    public String cancelReservation(String confirmationNumber) {
+        return reservationService.cancelReservation(userSession, confirmationNumber);
+    }
 }

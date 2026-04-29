@@ -3,6 +3,7 @@ package TechnicalServices.Persistence;
 import Domain.Reservations.Reservation;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
+import Domain.Services.ReservationService;
 import Domain.Shared.DateRange;
 
 import java.io.IOException;
@@ -107,7 +108,7 @@ public class SqliteReservationPersistence {
     public List<Reservation> findAll() throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_id, guest_name, masked_card_number, total_cost
+                       guest_id, guest_name, masked_card_number, total_cost, created_date
                 FROM Reservations
                 ORDER BY id
                 """;
@@ -126,7 +127,7 @@ public class SqliteReservationPersistence {
     public Optional<Reservation> findByConfirmationNumber(String confirmationNumber) throws SQLException {
         String sql = """
                 SELECT confirmation_number, room_number, check_in_date, check_out_date,
-                       guest_id, guest_name, masked_card_number, total_cost
+                       guest_id, guest_name, masked_card_number, total_cost, created_date
                 FROM Reservations
                 WHERE confirmation_number = ?
                 """;
@@ -154,6 +155,7 @@ public class SqliteReservationPersistence {
         if (!rs.wasNull()) {
             guestId = gid;
         }
+        LocalDate createdDate = readDateColumn(rs, "created_date");
         return new Reservation(
                 conf,
                 room,
@@ -161,7 +163,8 @@ public class SqliteReservationPersistence {
                 rs.getString("guest_name"),
                 rs.getString("masked_card_number"),
                 rs.getDouble("total_cost"),
-                guestId
+                guestId,
+                createdDate
         );
     }
 
@@ -226,7 +229,7 @@ public class SqliteReservationPersistence {
             setDateParam(ps, 3, r.getDateRange().getCheckInDate());
             setDateParam(ps, 4, r.getDateRange().getCheckOutDate());
             ps.setInt(5, 1);
-            setDateParam(ps, 6, LocalDate.now());
+            setDateParam(ps, 6, r.getCreatedDate());
             if (r.getGuestUserId() != null) {
                 ps.setLong(7, r.getGuestUserId());
             } else {
@@ -375,6 +378,27 @@ public class SqliteReservationPersistence {
             ps.setString(4, excludeConfirmation);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
+            }
+        }
+    }
+
+    public void updatePersonalDetailsOnly(Reservation r) throws SQLException {
+        String sql = """
+            UPDATE Reservations SET
+                guest_name = ?,
+                masked_card_number = ?,
+                address = ?
+            WHERE confirmation_number = ?
+            """;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, r.getGuestName());
+            ps.setString(2, r.getMaskedCardNumber());
+            ps.setString(4, r.getConfirmationNumber());
+
+            int n = ps.executeUpdate();
+            if (n != 1) {
+                throw new SQLException("UPDATE Reservations expected 1 row, got " + n);
             }
         }
     }
