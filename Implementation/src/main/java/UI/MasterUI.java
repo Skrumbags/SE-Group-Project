@@ -117,6 +117,7 @@ public class MasterUI {
 
         JPanel adminPanel = new AdminUI(
                 userSession,
+                userController,
                 () -> adminLayout.show(adminShell, "ADD_USER_CLERK"),
                 () -> adminLayout.show(adminShell, "ADMIN")
         );
