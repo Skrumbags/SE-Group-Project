@@ -12,8 +12,9 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -35,6 +36,8 @@ public class RoomAvailabilityPanel extends JPanel {
     private LocalDate lastSearchStartInclusive;
     private LocalDate lastSearchEndExclusive;
 
+    private static final DateTimeFormatter BAR_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
     public RoomAvailabilityPanel(SearchController searchController,
                                    BiConsumer<Room, DateRange> onRoomStayChosen) {
         this.searchController = searchController;
@@ -51,21 +54,12 @@ public class RoomAvailabilityPanel extends JPanel {
                 new EmptyBorder(10, 12, 10, 12)
         ));
 
-        SpinnerDateModel beginModel = new SpinnerDateModel(
-                new Date(), null, null, java.util.Calendar.DAY_OF_MONTH
-        );
-        SpinnerDateModel endModel = new SpinnerDateModel(
-                new Date(System.currentTimeMillis() + 86400000L), null, null, java.util.Calendar.DAY_OF_MONTH
-        );
-
-        //SpinnerDateModel beginModel = new SpinnerDateModel();
-        JSpinner beginDate = new JSpinner(beginModel);
-        beginDate.setEditor(new JSpinner.DateEditor(beginDate, "MM/dd/yyyy"));
+        // One entry per calendar day (SpinnerListModel + ListEditor): arrows always step whole days.
+        // JSpinner.DateEditor uses a formatted text field that steps month/day/year under the caret instead.
+        LocalDate today = LocalDate.now();
+        JSpinner beginDate = createDayListSpinner(today);
+        JSpinner endDate = createDayListSpinner(today.plusDays(1));
         beginDate.setPreferredSize(new Dimension(110, 30));
-
-        //SpinnerDateModel endModel = new SpinnerDateModel();
-        JSpinner endDate = new JSpinner(endModel);
-        endDate.setEditor(new JSpinner.DateEditor(endDate, "MM/dd/yyyy"));
         endDate.setPreferredSize(new Dimension(110, 30));
 
         JComboBox<RoomType.FloorType> floorBox = new JComboBox<>(RoomType.FloorType.values());
@@ -116,10 +110,8 @@ public class RoomAvailabilityPanel extends JPanel {
         // ── search action ─────────────────────────────────────────────
         searchButton.addActionListener(e -> {
             try {
-                Date s = (Date) beginDate.getValue();
-                Date en = (Date) endDate.getValue();
-                LocalDate start = s.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-                LocalDate end   = en.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                LocalDate start = LocalDate.parse((String) beginDate.getValue(), BAR_DATE);
+                LocalDate end   = LocalDate.parse((String) endDate.getValue(), BAR_DATE);
                 int numGuests   = Integer.parseInt(guestsField.getText().trim());
 
                 long span = ChronoUnit.DAYS.between(start, end);
@@ -155,6 +147,9 @@ public class RoomAvailabilityPanel extends JPanel {
                 resultsGrid.revalidate();
                 resultsGrid.repaint();
 
+            } catch (java.time.format.DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(this, "Please choose valid From and To dates.",
+                        "Invalid Dates", JOptionPane.ERROR_MESSAGE);
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Please enter a valid number of guests.",
                         "Invalid Input", JOptionPane.ERROR_MESSAGE);
@@ -264,5 +259,26 @@ public class RoomAvailabilityPanel extends JPanel {
         l.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         l.setForeground(TEXT_MUTED);
         return l;
+    }
+
+    /** Consecutive calendar days as MM/dd/yyyy strings so spinner arrows/keys move one day. */
+    private static JSpinner createDayListSpinner(LocalDate initial) {
+        LocalDate low = LocalDate.now().minusYears(1);
+        LocalDate high = LocalDate.now().plusYears(3);
+        LocalDate clamped = initial;
+        if (clamped.isBefore(low)) {
+            clamped = low;
+        }
+        if (clamped.isAfter(high)) {
+            clamped = high;
+        }
+        List<String> values = new ArrayList<>();
+        for (LocalDate d = low; !d.isAfter(high); d = d.plusDays(1)) {
+            values.add(d.format(BAR_DATE));
+        }
+        SpinnerListModel model = new SpinnerListModel(values);
+        JSpinner sp = new JSpinner(model);
+        sp.setValue(clamped.format(BAR_DATE));
+        return sp;
     }
 }
