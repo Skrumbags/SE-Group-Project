@@ -40,6 +40,7 @@ public class ClerkUI extends JPanel {
                    Runnable onModifyRoom,
                    Runnable onCheckInOut,
                    Runnable onReservations,
+                   Runnable onEditProfile,
                    ReservationController reservationController,
                    Consumer<String> onOpenCheckedInReservation) {
         this.reservationController = reservationController;
@@ -126,10 +127,13 @@ public class ClerkUI extends JPanel {
         JButton reservations = styleActionButton(new JButton("Reservations"), actionFont);
         reservations.setToolTipText("List, create, edit, and delete reservations");
         reservations.addActionListener(e -> onReservations.run());
+        JButton editProfile = new JButton("Edit profile");
+        editProfile.addActionListener(e -> onEditProfile.run());
         actions.add(addRoom);
         actions.add(modifyRoom);
         actions.add(checkInOut);
         actions.add(reservations);
+        actions.add(editProfile);
         add(actions, BorderLayout.SOUTH);
 
         checkedInSearchField.getDocument().addDocumentListener(new DocumentListener() {

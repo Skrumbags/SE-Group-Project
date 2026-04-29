@@ -13,7 +13,6 @@ import UI.Shopping.ProductCatalogUI;
 import UI.Guest.GuestReservationsUI;
 import UI.Guest.GuestUI;
 import UI.Guest.ReserveRoomUI;
-import UI.Guest.UpdateGuestPanel;
 import Domain.People.Clerk;
 import Domain.People.User;
 import Domain.People.UserSession;
@@ -158,6 +157,19 @@ public class MasterUI {
 
         Runnable showClerkHome = () -> clerkLayout.show(clerkShell, "CLERK");
 
+        Runnable refreshSessionUi = () -> {
+            User u = userSession.getCurrentUser();
+            if (u != null) {
+                navUserLabel.setText("Signed in as " + u.getUsername() + " (" + u.getRole() + ")");
+                sessionStrip.setVisible(true);
+            } else {
+                navUserLabel.setText(" ");
+                sessionStrip.setVisible(false);
+            }
+            sessionStrip.revalidate();
+            sessionStrip.repaint();
+        };
+
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
                 userSession,
                 reservationController,
@@ -165,10 +177,28 @@ public class MasterUI {
                 showClerkHome
         );
 
-        UpdateGuestPanel updateGuestPanel = new UpdateGuestPanel(
-                userSession,
-                userService,
-                () -> guestLayout.show(guestShell, "GUEST_HOME")
+        ProfileUI guestProfilePanel = new ProfileUI(
+                userSession, userController,
+                () -> {
+                    refreshSessionUi.run();
+                    guestLayout.show(guestShell, "HOME");
+                }
+        );
+
+        ProfileUI clerkProfilePanel = new ProfileUI(
+                userSession, userController,
+                () -> {
+                    refreshSessionUi.run();
+                    clerkLayout.show(clerkShell, "CLERK");
+                }
+        );
+
+        ProfileUI adminProfilePanel = new ProfileUI(
+                userSession, userController,
+                () -> {
+                    refreshSessionUi.run();
+                    adminLayout.show(adminShell, "ADMIN");
+                }
         );
 
         AddCA_UI addClerkAdmin = new AddCA_UI(userController);
@@ -180,6 +210,10 @@ public class MasterUI {
                 () -> {
                     addClerkAdmin.refresh();
                     adminLayout.show(adminShell, "ADD_USER_CLERK");
+                },
+                () -> {
+                    adminProfilePanel.refresh();
+                    adminLayout.show(adminShell, "PROFILE");
                 },
                 () -> adminLayout.show(adminShell, "ADMIN")
         );
@@ -194,6 +228,10 @@ public class MasterUI {
                     clerkReservationsPanel.prepareShow();
                     clerkReservationsPanel.refresh();
                     clerkLayout.show(clerkShell, "CLERK_RES");
+                },
+                () -> {
+                    clerkProfilePanel.refresh();
+                    clerkLayout.show(clerkShell, "PROFILE");
                 },
                 reservationController,
                 confirmationNumber -> {
@@ -229,8 +267,8 @@ public class MasterUI {
                             guestLayout.show(guestShell, "BILL");
                         },
                         () -> {
-                            updateGuestPanel.refresh();
-                            guestLayout.show(guestShell, "UPDATE_GUEST");
+                            guestProfilePanel.refresh();
+                            guestLayout.show(guestShell, "PROFILE");
                         },
                         () -> {
                             manageResPanel.refreshList();
@@ -263,25 +301,15 @@ public class MasterUI {
         guestShell.add(cartPanel, "CART");
         guestShell.add(billPanel, "BILL");
         guestShell.add(manageResPanel, "MANAGE_RES");
+        guestShell.add(guestProfilePanel, "PROFILE");
 
         adminShell.add(adminPanel, "ADMIN");
         adminShell.add(addClerkAdmin, "ADD_USER_CLERK");
+        adminShell.add(adminProfilePanel, "PROFILE");
 
         clerkShell.add(clerkHomePanel, "CLERK");
         clerkShell.add(clerkReservationsPanel, "CLERK_RES");
-
-        Runnable refreshSessionUi = () -> {
-            User u = userSession.getCurrentUser();
-            if (u != null) {
-                navUserLabel.setText("Signed in as " + u.getUsername() + " (" + u.getRole() + ")");
-                sessionStrip.setVisible(true);
-            } else {
-                navUserLabel.setText(" ");
-                sessionStrip.setVisible(false);
-            }
-            sessionStrip.revalidate();
-            sessionStrip.repaint();
-        };
+        clerkShell.add(clerkProfilePanel, "PROFILE");
 
         PublicUI publicUI = new PublicUI(
                 searchController,
