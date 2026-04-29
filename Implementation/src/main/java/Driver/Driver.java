@@ -36,11 +36,14 @@ public class Driver {
 
     public static void main(String[] args) throws UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
 
-        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel"); // for UI
-        UIManager.put("nimbusBase", new Color(24, 95, 165));
-        UIManager.put("nimbusLightBackground", Color.WHITE);
-        UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel"); // Blue accent
-        UIManager.put("Panel.background", new Color(230, 241, 251));
+        try {
+            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+
+            UIManager.put("nimbusBase", new Color(24, 95, 165));
+            UIManager.put("nimbusLightBackground", Color.WHITE);
+            UIManager.put("Panel.background", new Color(230, 241, 251));
+
+        } catch (Exception e) {}
 
         Path db = Path.of("data", "database.db");
         RoomCatalog roomCatalog = new RoomCatalog();
