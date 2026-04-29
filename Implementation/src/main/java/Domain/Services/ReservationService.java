@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -103,6 +104,24 @@ public class ReservationService {
 
     public List<Reservation> getReservations() {
         return List.copyOf(reservationList);
+    }
+
+    /**
+     * Clerk dashboard: reservations marked checked in whose stay includes {@code onDate}
+     * ({@code checkIn <= onDate < checkOut}).
+     */
+    public List<Reservation> listCheckedInStaysOnDate(UserSession session, LocalDate onDate) {
+        session.requireLoggedInClerk();
+        return getReservations().stream()
+                .filter(Reservation::isActive)
+                .filter(r -> stayIncludesNight(r, onDate))
+                .sorted(Comparator.comparing(Reservation::getGuestName, Comparator.nullsFirst(String::compareToIgnoreCase)))
+                .toList();
+    }
+
+    private static boolean stayIncludesNight(Reservation r, LocalDate night) {
+        DateRange dr = r.getDateRange();
+        return !night.isBefore(dr.getCheckInDate()) && night.isBefore(dr.getCheckOutDate());
     }
 
     public Optional<Reservation> findReservation(String confirmationNumber) {
@@ -351,12 +370,6 @@ public class ReservationService {
             if (r.getGuestUserId() == null) {
                 throw new IllegalArgumentException("Reservation has no linked guest account; cannot check in.");
             }
-            LocalDate today = LocalDate.now();
-            if (today.isBefore(r.getDateRange().getCheckInDate())) {
-                throw new IllegalArgumentException(
-                        "Check-in is only allowed on or after the reservation check-in date ("
-                                + r.getDateRange().getCheckInDate() + ").");
-            }
             sqlite.setReservationActive(confirmationNumber, true);
             loadList();
         } catch (SQLException e) {
@@ -371,8 +384,10 @@ public class ReservationService {
             throw new IllegalArgumentException("Confirmation number is required.");
         }
         try {
-            if (sqlite.findByConfirmationNumber(confirmationNumber).isEmpty()) {
-                throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
+            Reservation row = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+            if (!row.isActive()) {
+                throw new IllegalStateException("This reservation is not active and cannot be checked out.");
             }
             sqlite.setReservationActive(confirmationNumber, false);
             loadList();

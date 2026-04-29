@@ -170,6 +170,29 @@ public class ClerkReservationsUI extends JPanel {
         refreshList();
     }
 
+    /**
+     * Opens the reservations screen with this confirmation selected in the list and form.
+     * Clears the search filter so the row is visible.
+     */
+    public void selectReservationByConfirmation(String confirmationNumber) {
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            return;
+        }
+        searchField.setText("");
+        refreshList();
+        for (int i = 0; i < rowCache.size(); i++) {
+            if (confirmationNumber.equals(rowCache.get(i).getConfirmationNumber())) {
+                reservationList.setSelectedIndex(i);
+                reservationList.ensureIndexIsVisible(i);
+                return;
+            }
+        }
+        JOptionPane.showMessageDialog(this,
+                "Could not find reservation " + confirmationNumber + " in the list.",
+                "Not found",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private void applyFilter() {
         String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
 

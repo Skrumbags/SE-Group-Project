@@ -13,6 +13,7 @@ import UI.Shopping.ProductCatalogUI;
 import UI.Guest.GuestReservationsUI;
 import UI.Guest.GuestUI;
 import UI.Guest.ReserveRoomUI;
+import UI.Guest.UpdateGuestPanel;
 import Domain.People.Clerk;
 import Domain.People.User;
 import Domain.People.UserSession;
@@ -50,7 +51,7 @@ public class MasterUI {
 
         JFrame frame = new JFrame("Hotel Reservation App");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(900, 500);
+        frame.setSize(1200, 780);
         frame.setLocationRelativeTo(null);
 
         CardLayout shellLayout = new CardLayout();
@@ -145,7 +146,7 @@ public class MasterUI {
                 return;
             }
             JDialog dlg = new JDialog(frame, "Check in / Check out guest", true);
-            ClerkCheckInOutUI ui = new ClerkCheckInOutUI(userSession, reservationController);
+            ClerkCheckInOutUI ui = new ClerkCheckInOutUI(userSession, reservationController, shoppingController);
             ui.setBackAction(e -> dlg.dispose(), "Close");
             dlg.setContentPane(ui);
             dlg.pack();
@@ -155,48 +156,19 @@ public class MasterUI {
 
         UserService userService = userController.getUserService();
 
+        Runnable showClerkHome = () -> clerkLayout.show(clerkShell, "CLERK");
+
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
                 userSession,
                 reservationController,
                 shoppingController,
-                () -> clerkLayout.show(clerkShell, "CLERK")
+                showClerkHome
         );
 
-        Runnable refreshSessionUi = () -> {
-            User u = userSession.getCurrentUser();
-            if (u != null) {
-                navUserLabel.setText("Signed in as " + u.getUsername() + " (" + u.getRole() + ")");
-                sessionStrip.setVisible(true);
-            } else {
-                navUserLabel.setText(" ");
-                sessionStrip.setVisible(false);
-            }
-            sessionStrip.revalidate();
-            sessionStrip.repaint();
-        };
-
-        ProfileUI guestProfilePanel = new ProfileUI(
-                userSession, userController,
-                () -> {
-                    refreshSessionUi.run();
-                    guestLayout.show(guestShell, "HOME");
-                }
-        );
-
-        ProfileUI clerkProfilePanel = new ProfileUI(
-                userSession, userController,
-                () -> {
-                    refreshSessionUi.run();
-                    clerkLayout.show(clerkShell, "CLERK");
-                }
-        );
-
-        ProfileUI adminProfilePanel = new ProfileUI(
-                userSession, userController,
-                () -> {
-                    refreshSessionUi.run();
-                    adminLayout.show(adminShell, "ADMIN");
-                }
+        UpdateGuestPanel updateGuestPanel = new UpdateGuestPanel(
+                userSession,
+                userService,
+                () -> guestLayout.show(guestShell, "GUEST_HOME")
         );
 
         AddCA_UI addClerkAdmin = new AddCA_UI(userController);
@@ -209,15 +181,11 @@ public class MasterUI {
                     addClerkAdmin.refresh();
                     adminLayout.show(adminShell, "ADD_USER_CLERK");
                 },
-                () -> {
-                    adminProfilePanel.refresh();
-                    adminLayout.show(adminShell, "PROFILE");
-                },
                 () -> adminLayout.show(adminShell, "ADMIN")
         );
 
 
-        JPanel clerkPanel = new ClerkUI(
+        ClerkUI clerkHomePanel = new ClerkUI(
                 userSession,
                 openClerkAddRoomDialog,
                 openClerkModifyRoomDialog,
@@ -227,11 +195,12 @@ public class MasterUI {
                     clerkReservationsPanel.refresh();
                     clerkLayout.show(clerkShell, "CLERK_RES");
                 },
-                () -> {
-                    clerkProfilePanel.refresh();
-                    clerkLayout.show(clerkShell, "PROFILE");
-                },
-                () -> clerkLayout.show(clerkShell, "CLERK")
+                reservationController,
+                confirmationNumber -> {
+                    clerkReservationsPanel.prepareShow();
+                    clerkReservationsPanel.selectReservationByConfirmation(confirmationNumber);
+                    clerkLayout.show(clerkShell, "CLERK_RES");
+                }
         );
 
         JPanel guestHomeWrap = new JPanel(new BorderLayout());
@@ -260,8 +229,8 @@ public class MasterUI {
                             guestLayout.show(guestShell, "BILL");
                         },
                         () -> {
-                            guestProfilePanel.refresh();
-                            guestLayout.show(guestShell, "PROFILE");
+                            updateGuestPanel.refresh();
+                            guestLayout.show(guestShell, "UPDATE_GUEST");
                         },
                         () -> {
                             manageResPanel.refreshList();
@@ -294,16 +263,25 @@ public class MasterUI {
         guestShell.add(cartPanel, "CART");
         guestShell.add(billPanel, "BILL");
         guestShell.add(manageResPanel, "MANAGE_RES");
-        guestShell.add(guestProfilePanel, "PROFILE");
 
         adminShell.add(adminPanel, "ADMIN");
         adminShell.add(addClerkAdmin, "ADD_USER_CLERK");
-        adminShell.add(adminProfilePanel, "PROFILE");
 
-        clerkShell.add(clerkPanel, "CLERK");
+        clerkShell.add(clerkHomePanel, "CLERK");
         clerkShell.add(clerkReservationsPanel, "CLERK_RES");
-        clerkShell.add(clerkProfilePanel, "PROFILE");
 
+        Runnable refreshSessionUi = () -> {
+            User u = userSession.getCurrentUser();
+            if (u != null) {
+                navUserLabel.setText("Signed in as " + u.getUsername() + " (" + u.getRole() + ")");
+                sessionStrip.setVisible(true);
+            } else {
+                navUserLabel.setText(" ");
+                sessionStrip.setVisible(false);
+            }
+            sessionStrip.revalidate();
+            sessionStrip.repaint();
+        };
 
         PublicUI publicUI = new PublicUI(
                 searchController,
