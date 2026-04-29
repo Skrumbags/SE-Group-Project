@@ -1,4 +1,4 @@
-package UI.User;
+package UI.Guest;
 
 import javax.swing.*;
 

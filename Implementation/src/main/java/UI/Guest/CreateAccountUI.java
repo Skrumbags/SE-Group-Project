@@ -1,4 +1,4 @@
-package UI.User;
+package UI.Guest;
 
 import Controllers.UserController;
 import Domain.Services.UserService;
@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
-public class AddUserUI extends JPanel {
+public class CreateAccountUI extends JPanel {
 
     private final UserController userController;
 
@@ -18,7 +18,7 @@ public class AddUserUI extends JPanel {
     private final JTextField emailField     = new JTextField(15);
     private JButton backButton = new JButton();
 
-    public AddUserUI(UserController userController) {
+    public CreateAccountUI(UserController userController) {
         this.userController = userController;
         setLayout(new GridLayout(6, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -102,6 +102,14 @@ public class AddUserUI extends JPanel {
         backButton.addActionListener(goBack);
         backButton.setLabel(backMessage);
         backButton.setVisible(true);
+    }
+
+    public void refresh() {
+        usernameField.setText("");
+        passwordField.setText("");
+        nameField.setText("");
+        phoneField.setText("");
+        emailField.setText("");
     }
 }
 

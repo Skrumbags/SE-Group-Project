@@ -17,7 +17,7 @@ import Domain.Reservations.ReservationSummary;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
 import Testing.UseCases.ReserveRoom;
-import UI.User.ReserveRoomUI;
+import UI.Guest.ReserveRoomUI;
 import Domain.Shared.DateRange;
 import Controllers.ReservationController;
 import Controllers.UserController;

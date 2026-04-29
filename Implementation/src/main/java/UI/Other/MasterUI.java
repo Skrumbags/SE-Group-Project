@@ -1,4 +1,4 @@
-package UI;
+package UI.Other;
 
 import UI.Admin.AdminUI;
 import UI.Admin.AddCA_UI;
@@ -10,10 +10,10 @@ import UI.Clerk.ModifyRoomUI;
 import UI.Shopping.CartUI;
 import UI.Shopping.CombinedBillUI;
 import UI.Shopping.ProductCatalogUI;
-import UI.User.GuestReservationsUI;
-import UI.User.GuestUI;
-import UI.User.ReserveRoomUI;
-import UI.User.UpdateGuestPanel;
+import UI.Guest.GuestReservationsUI;
+import UI.Guest.GuestUI;
+import UI.Guest.ReserveRoomUI;
+import UI.Guest.UpdateGuestPanel;
 import Domain.People.Clerk;
 import Domain.People.User;
 import Domain.People.UserSession;
@@ -22,7 +22,6 @@ import Domain.Services.UserService;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Objects;
 
 /**
  * Composes role-specific shells: anonymous users see {@link PublicUI}; guests, clerks, and admins
@@ -172,14 +171,19 @@ public class MasterUI {
                 () -> guestLayout.show(guestShell, "GUEST_HOME")
         );
 
+        AddCA_UI addClerkAdmin = new AddCA_UI(userController);
+        addClerkAdmin.setBackAction(e -> adminLayout.show(adminShell, "ADMIN"), "← Back to admin");
+
         JPanel adminPanel = new AdminUI(
                 userSession,
                 userController,
-                () -> adminLayout.show(adminShell, "ADD_USER_CLERK"),
+                () -> {
+                    addClerkAdmin.refresh();
+                    adminLayout.show(adminShell, "ADD_USER_CLERK");
+                },
                 () -> adminLayout.show(adminShell, "ADMIN")
         );
-        AddCA_UI addClerkAdmin = new AddCA_UI(userController);
-        addClerkAdmin.setBackAction(e -> adminLayout.show(adminShell, "ADMIN"), "← Back to admin");
+
 
         ClerkUI clerkHomePanel = new ClerkUI(
                 userSession,
@@ -188,6 +192,7 @@ public class MasterUI {
                 openClerkCheckInOutDialog,
                 () -> {
                     clerkReservationsPanel.prepareShow();
+                    clerkReservationsPanel.refresh();
                     clerkLayout.show(clerkShell, "CLERK_RES");
                 },
                 reservationController,
@@ -207,7 +212,7 @@ public class MasterUI {
                 GuestUI guestHome = new GuestUI(
                         u,
                         () -> {
-                            reservePanel.refreshRoomOptions();
+                            reservePanel.refresh();
                             guestLayout.show(guestShell, "RESERVE");
                         },
                         () -> guestLayout.show(guestShell, "SEARCH"),
