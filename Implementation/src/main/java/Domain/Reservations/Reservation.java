@@ -27,7 +27,7 @@ public class Reservation {
 
     /** {@link User#getDatabaseId()} for the guest, when known. */
     private final Long guestUserId;
-    private final LocalDate createdDate;
+    private LocalDate createdDate;
     private boolean active;
     private double totalCost;
 
@@ -69,6 +69,10 @@ public class Reservation {
 
     public Room getRoom() {
         return room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
     }
 
     public DateRange getDateRange() {
@@ -130,7 +134,6 @@ public class Reservation {
     }
 
     public void modifyItinerary(Room newRoom, DateRange newDates, LocalDate modificationDate) {
-
         // 1. Calculate the penalty by querying the Information Expert
         double oldFee = getExtraFee();
         double penalty = Cancellation.calculatePenaltyFee(this, modificationDate);
@@ -144,5 +147,6 @@ public class Reservation {
         this.room = newRoom;
         this.dateRange = newDates;
         this.totalCost = newBaseCost + oldFee + penalty;
+        this.createdDate = modificationDate;
     }
 }

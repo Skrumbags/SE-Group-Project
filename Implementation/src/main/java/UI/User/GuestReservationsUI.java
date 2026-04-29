@@ -135,6 +135,12 @@ public class GuestReservationsUI extends JPanel {
         }
         Reservation r = rowCache.get(idx);
 
+        // UI blocking constraint for active/past reservations
+        if (!LocalDate.now().isBefore(r.getDateRange().getCheckInDate())) {
+            JOptionPane.showMessageDialog(this, "Reservations cannot be cancelled on or after the check-in date.", "Cancellation Prohibited", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         double fee = r.peekPenaltyFee(LocalDate.now());
 
         // Front-load the fee warning
@@ -163,7 +169,12 @@ public class GuestReservationsUI extends JPanel {
         }
         Reservation r = rowCache.get(idx);
 
-        // NEW: Front-load the modification fee warning BEFORE asking for dates
+        // UI blocking constraint for active/past reservations
+        if (!LocalDate.now().isBefore(r.getDateRange().getCheckInDate())) {
+            JOptionPane.showMessageDialog(this, "Reservations cannot be modified on or after the check-in date.", "Modification Prohibited", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         double fee = r.peekPenaltyFee(LocalDate.now());
         if (fee > 0) {
             int proceed = JOptionPane.showConfirmDialog(this,
@@ -208,6 +219,12 @@ public class GuestReservationsUI extends JPanel {
         try {
             LocalDate in = LocalDate.parse(inField.getText().trim());
             LocalDate out = LocalDate.parse(outField.getText().trim());
+
+            // UI blocking constraint for past dates
+            if (in.isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException("Check-in date cannot be in the past.");
+            }
+
             DateRange newDates = new DateRange(in, out);
 
             Domain.Rooms.RoomType.FloorType prefFloor = (Domain.Rooms.RoomType.FloorType) floorCombo.getSelectedItem();

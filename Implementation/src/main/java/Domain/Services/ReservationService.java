@@ -329,7 +329,8 @@ public class ReservationService {
                     guestName.trim(),
                     cardNumber,
                     totalCost,
-                    guestUserId
+                    guestUserId,
+                    existingRow.get().getCreatedDate() // Pass the existing created date
             );
             loadList();
         } catch (SQLException e) {
@@ -379,7 +380,7 @@ public class ReservationService {
         reservationList.addAll(this.sqlite.findAll());
     }
 
-    public String cancelReservation(UserSession session, String confirmationNumber) {
+    public String cancelReservation(UserSession session, String confirmationNumber, List<Room> allRooms) {
         Reservation r = findReservation(confirmationNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
 
@@ -389,12 +390,17 @@ public class ReservationService {
             }
         }
 
+        // HYDRATE the room to ensure we have the correct daily rate for the penalty logic
+        allRooms.stream()
+                .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
+                .findFirst()
+                .ifPresent(r::setRoom);
+
         Cancellation cancellation = new Cancellation(r, LocalDate.now());
         double fee = cancellation.getPenaltyFee();
 
         try {
             sqlite.deleteByConfirmationNumber(confirmationNumber);
-
             this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
 
         } catch (java.sql.SQLException e) {
@@ -432,7 +438,7 @@ public class ReservationService {
         }
     }
 
-    public String modifyGuestItinerary(UserSession session, String confirmationNumber, Room newRoom, DateRange newDates) {
+    public String modifyGuestItinerary(UserSession session, String confirmationNumber, Room newRoom, DateRange newDates, List<Room> allRooms) {
         Reservation r = null;
         try {
             r = sqlite.findByConfirmationNumber(confirmationNumber)
@@ -441,11 +447,22 @@ public class ReservationService {
             throw new RuntimeException(e);
         }
 
+        int rNumber = r.getRoom().getRoomNumber();
+        allRooms.stream()
+                .filter(room -> room.getRoomNumber() == rNumber)
+                .findFirst()
+                .ifPresent(r::setRoom);
+
         // Enforce authorization
         if (session.getCurrentUser() instanceof Domain.People.Guest) {
             if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
                 throw new IllegalStateException("You are not authorized to modify this reservation.");
             }
+        }
+
+        // Prevent modification if the reservation starts today or has already started
+        if (!java.time.LocalDate.now().isBefore(r.getDateRange().getCheckInDate())) {
+            throw new IllegalStateException("Cannot modify a reservation that starts today or has already started.");
         }
 
         try {
@@ -457,7 +474,7 @@ public class ReservationService {
 
             double oldFees = r.getExtraFee();
 
-            // Domain expert calculates the new fees
+            // Domain expert calculates the new fees and updates the createdDate natively
             r.modifyItinerary(newRoom, newDates, java.time.LocalDate.now());
 
             // Save changes to database
@@ -469,7 +486,8 @@ public class ReservationService {
                     r.getGuestName(),
                     r.getCardNumber(),
                     r.getTotalCost(),
-                    r.getGuestUserId()
+                    r.getGuestUserId(),
+                    r.getCreatedDate() // Update the created date in the DB
             );
 
             this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));

@@ -259,7 +259,7 @@ public class SqliteReservationPersistence {
 
     public void updateReservation(String confirmationNumber, int roomNumber, LocalDate checkIn,
                                   LocalDate checkOut, String guestName, String cardNumber,
-                                  double totalCost, Long guestUserId) throws SQLException {
+                                  double totalCost, Long guestUserId, LocalDate createdDate) throws SQLException {
         String sql = """
                 UPDATE Reservations SET
                     room_number = ?,
@@ -269,7 +269,8 @@ public class SqliteReservationPersistence {
                     card_number = ?,
                     is_active = ?,
                     total_cost = ?,
-                    guest_id = ?
+                    guest_id = ?,
+                    created_date = ?
                 WHERE confirmation_number = ?
                 """;
         try (Connection conn = DriverManager.getConnection(jdbcUrl());
@@ -286,7 +287,9 @@ public class SqliteReservationPersistence {
             } else {
                 ps.setNull(8, Types.INTEGER);
             }
-            ps.setString(9, confirmationNumber);
+            setDateParam(ps, 9, createdDate);
+            ps.setString(10, confirmationNumber);
+
             int n = ps.executeUpdate();
             if (n != 1) {
                 throw new SQLException("UPDATE Reservations expected 1 row, got " + n);
