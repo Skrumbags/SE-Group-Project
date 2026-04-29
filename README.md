@@ -16,7 +16,7 @@ Room data, reservation rows, users, products, carts, and purchase headers/lines 
 
 ---
 
-## How it is wired together
+## How it works together
 
 **Composition root — `Driver.Driver`**  
 `main` chooses the DB path (`data/database.db` next to the working directory), constructs one instance each of:
