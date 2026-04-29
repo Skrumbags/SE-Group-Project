@@ -405,4 +405,71 @@ public class ReservationService {
             throw new RuntimeException("Failed to update reservation.", e);
         }
     }
+
+    public String modifyGuestItinerary(UserSession session, String confirmationNumber, Room newRoom, DateRange newDates) {
+        Reservation r = null;
+        try {
+            r = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Enforce authorization
+        if (session.getCurrentUser() instanceof Domain.People.Guest) {
+            if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
+                throw new IllegalStateException("You are not authorized to modify this reservation.");
+            }
+        }
+
+        try {
+            // Check availability, excluding the current reservation
+            boolean isOccupied = sqlite.existsOverlapExcluding(newRoom.getRoomNumber(), newDates, confirmationNumber);
+            if (isOccupied) {
+                throw new IllegalStateException("Room " + newRoom.getRoomNumber() + " is not available for those dates.");
+            }
+
+            double oldCost = r.getTotalCost();
+
+            // Domain expert calculates the new fees
+            r.modifyItinerary(newRoom, newDates, java.time.LocalDate.now());
+
+            // Save changes to database
+            sqlite.updateReservation(
+                    r.getConfirmationNumber(),
+                    r.getRoom().getRoomNumber(),
+                    r.getDateRange().getCheckInDate(),
+                    r.getDateRange().getCheckOutDate(),
+                    r.getGuestName(),
+                    r.getCardNumber(),
+                    r.getTotalCost(),
+                    r.getGuestUserId()
+            );
+
+            if (r.getTotalCost() > oldCost) {
+                return String.format("Itinerary updated. Your new total is $%.2f (includes change fees).", r.getTotalCost());
+            } else {
+                return String.format("Itinerary updated. Your new total is $%.2f.", r.getTotalCost());
+            }
+
+        } catch (java.sql.SQLException e) {
+            throw new RuntimeException("Database error updating reservation.", e);
+        }
+    }
+
+    public List<Room> getAvailableRoomsForModification(
+            List<Room> allRooms, DateRange newDates, String excludeConfirmation) {
+
+        List<Room> available = new ArrayList<>();
+        for (Room r : allRooms) {
+            try {
+                if (!sqlite.existsOverlapExcluding(r.getRoomNumber(), newDates, excludeConfirmation)) {
+                    available.add(r);
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Database error checking availability", e);
+            }
+        }
+        return available;
+    }
 }

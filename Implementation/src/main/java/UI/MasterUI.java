@@ -84,6 +84,12 @@ public class MasterUI {
                 }
         );
 
+        GuestReservationsUI manageResPanel = new GuestReservationsUI(
+                userSession,
+                reservationController,
+                () -> guestLayout.show(guestShell, "HOME")
+        );
+
         Runnable openClerkAddRoomDialog = () -> {
             if (!(userSession.getCurrentUser() instanceof Clerk)) {
                 JOptionPane.showMessageDialog(frame,
@@ -161,6 +167,10 @@ public class MasterUI {
                         () -> {
                             updateGuestPanel.refresh();
                             guestLayout.show(guestShell, "UPDATE_GUEST");
+                        },
+                        () -> {
+                            manageResPanel.refreshList();
+                            guestLayout.show(guestShell, "MANAGE_RES");
                         }
                 );
                 guestHomeWrap.add(guestHome, BorderLayout.CENTER);
@@ -188,6 +198,7 @@ public class MasterUI {
         guestShell.add(shopPanel, "SHOP");
         guestShell.add(cartPanel, "CART");
         guestShell.add(billPanel, "BILL");
+        guestShell.add(manageResPanel, "MANAGE_RES");
 
         adminShell.add(adminPanel, "ADMIN");
         adminShell.add(addClerkAdmin, "ADD_USER_CLERK");

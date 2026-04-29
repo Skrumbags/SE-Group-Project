@@ -261,29 +261,44 @@ public class ClerkReservationsUI extends JPanel {
                         "Nothing selected", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
             Reservation existing = rowCache.get(idx);
             String conf = existing.getConfirmationNumber();
-            int roomNumber = (Integer) roomCombo.getSelectedItem();
+
+            // 1. Get UI Values
+            int newRoomNumber = (Integer) roomCombo.getSelectedItem();
             LocalDate in = LocalDate.parse(dateFieldText(checkInField));
             LocalDate out = LocalDate.parse(dateFieldText(checkOutField));
-            DateRange range = new DateRange(in, out);
+            DateRange newRange = new DateRange(in, out);
+
+            // 2. Check if Room or Dates changed. If so, use the new Itinerary logic
+            boolean itineraryChanged = existing.getRoom().getRoomNumber() != newRoomNumber
+                    || !existing.getDateRange().getCheckInDate().equals(in)
+                    || !existing.getDateRange().getCheckOutDate().equals(out);
+
+            if (itineraryChanged) {
+                String resultMsg = reservationController.modifyGuestItinerary(conf, newRoomNumber, newRange);
+                JOptionPane.showMessageDialog(this, resultMsg, "Itinerary Updated", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+            // 3. Update personal details (using the existing clerkUpdateReservation or your new personal details method)
             Long guestId = reservationController.resolveGuestUserIdForLink(guestUsernameField.getText());
             reservationController.clerkUpdateReservation(
                     conf,
-                    roomNumber,
-                    range,
+                    newRoomNumber, // Room/Dates might be redundant here now, but keeps your existing flow intact
+                    newRange,
                     guestNameField.getText(),
                     creditCardField.getText(),
                     guestId
             );
-            JOptionPane.showMessageDialog(this, "Reservation updated.", "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
+
+            JOptionPane.showMessageDialog(this, "Reservation details saved.", "Success", JOptionPane.INFORMATION_MESSAGE);
             refreshList();
+
         } catch (IllegalStateException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Cannot update", JOptionPane.ERROR_MESSAGE);
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Dates must be YYYY-MM-DD.", "Invalid date",
-                    JOptionPane.ERROR_MESSAGE);
+        } catch (java.time.format.DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Dates must be YYYY-MM-DD.", "Invalid date", JOptionPane.ERROR_MESSAGE);
         }
     }
 

@@ -118,4 +118,26 @@ public class ReservationController {
     public String cancelReservation(String confirmationNumber) {
         return reservationService.cancelReservation(userSession, confirmationNumber);
     }
+
+    public String modifyGuestItinerary(String confirmationNumber, int newRoomNumber, DateRange newDates) {
+        // 1. Controller fetches the Room object
+        Room newRoom = roomService.getRooms().stream()
+                .filter(r -> r.getRoomNumber() == newRoomNumber)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid room number selected."));
+
+        // 2. Pass the domain object to the Service
+        return reservationService.modifyGuestItinerary(userSession, confirmationNumber, newRoom, newDates);
+    }
+
+    public List<Reservation> getMyReservations() {
+        Long myId = userSession.requireLoggedInGuest().getDatabaseId();
+        return reservationService.getReservations().stream()
+                .filter(r -> myId.equals(r.getGuestUserId()))
+                .toList();
+    }
+
+    public List<Room> getAvailableRoomsForModification(DateRange newDates, String excludeConfirmation) {
+        return reservationService.getAvailableRoomsForModification(roomService.getRooms(), newDates, excludeConfirmation);
+    }
 }
