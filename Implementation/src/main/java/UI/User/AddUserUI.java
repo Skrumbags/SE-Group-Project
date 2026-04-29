@@ -1,4 +1,5 @@
-package UI;
+package UI.User;
+
 import Controllers.UserController;
 import Domain.Services.UserService;
 
@@ -62,7 +63,8 @@ public class AddUserUI extends JPanel {
 
     public void setBackAction(ActionListener goBack, String backMessage) {
         backButton.addActionListener(goBack);
-        backButton.setLabel("← Back to Welcome");
+        backButton.setLabel(backMessage);
         backButton.setVisible(true);
     }
 }
+

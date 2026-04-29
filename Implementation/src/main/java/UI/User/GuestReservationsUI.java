@@ -1,4 +1,4 @@
-package UI;
+package UI.User;
 
 import Controllers.ReservationController;
 import Domain.People.UserSession;
@@ -165,3 +165,4 @@ public class GuestReservationsUI extends JPanel {
         }
     }
 }
+

@@ -1,4 +1,4 @@
-package UI;
+package UI.User;
 
 import Domain.People.UserSession;
 import Domain.Reservations.ReservationSummary;

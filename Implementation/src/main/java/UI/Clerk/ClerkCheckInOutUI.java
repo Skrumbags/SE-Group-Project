@@ -1,4 +1,4 @@
-package UI;
+package UI.Clerk;
 
 import Controllers.ReservationController;
 import Domain.People.UserSession;
@@ -112,8 +112,7 @@ public class ClerkCheckInOutUI extends JPanel {
     private void applyFilter() {
         String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
         resultsModel.clear();
-        for (int i = 0; i < cache.size(); i++) {
-            Reservation r = cache.get(i);
+        for (Reservation r : cache) {
             String conf = r.getConfirmationNumber() == null ? "" : r.getConfirmationNumber();
             String guest = r.getGuestName() == null ? "" : r.getGuestName();
             String hay = (conf + " " + guest).toLowerCase();
@@ -132,7 +131,6 @@ public class ClerkCheckInOutUI extends JPanel {
     private Reservation getSelectedReservationOrNull() {
         String selected = resultsList.getSelectedValue();
         if (selected == null) return null;
-        // Match by confirmation number prefix in the formatted row.
         for (Reservation r : cache) {
             if (selected.startsWith(r.getConfirmationNumber())) {
                 return r;

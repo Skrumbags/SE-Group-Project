@@ -1,4 +1,4 @@
-package UI;
+package UI.Admin;
 
 import Controllers.UserController;
 import Domain.People.User;
@@ -127,11 +127,12 @@ public class AdminUI extends JPanel {
         }
 
         String username = results.getSelectedValue();
-        if (username.isBlank()) {
+        if (username == null || username.isBlank()) {
             JOptionPane.showMessageDialog(this, "Select a username from the list.", "Invalid user",
                     JOptionPane.ERROR_MESSAGE);
             return;
         }
+
         User target = userService.findByUsername(username);
         if (target == null || target.getDatabaseId() == null) {
             JOptionPane.showMessageDialog(this, "User not found: " + username, "Invalid user",
@@ -174,3 +175,4 @@ public class AdminUI extends JPanel {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 }
+

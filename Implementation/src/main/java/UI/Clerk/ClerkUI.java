@@ -1,4 +1,4 @@
-package UI;
+package UI.Clerk;
 
 import Domain.People.User;
 import Domain.People.UserSession;
@@ -37,3 +37,4 @@ public class ClerkUI extends JPanel {
         add(actions, BorderLayout.CENTER);
     }
 }
+

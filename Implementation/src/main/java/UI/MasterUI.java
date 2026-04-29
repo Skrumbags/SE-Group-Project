@@ -1,5 +1,19 @@
 package UI;
 
+import UI.Admin.AdminUI;
+import UI.Admin.AddCA_UI;
+import UI.Clerk.AddRoomUI;
+import UI.Clerk.ClerkCheckInOutUI;
+import UI.Clerk.ClerkReservationsUI;
+import UI.Clerk.ClerkUI;
+import UI.Clerk.ModifyRoomUI;
+import UI.Shopping.CartUI;
+import UI.Shopping.CombinedBillUI;
+import UI.Shopping.ProductCatalogUI;
+import UI.User.GuestReservationsUI;
+import UI.User.GuestUI;
+import UI.User.ReserveRoomUI;
+import UI.User.UpdateGuestPanel;
 import Domain.People.Clerk;
 import Domain.People.User;
 import Domain.People.UserSession;
