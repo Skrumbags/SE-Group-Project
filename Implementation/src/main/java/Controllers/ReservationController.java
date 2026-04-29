@@ -10,6 +10,7 @@ import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
 import Domain.Shared.DateRange;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +60,13 @@ public class ReservationController {
         List<Reservation> resList = reservationService.getReservations();
         hydrateRooms(resList);
         return resList;
+    }
+
+    /** Active (checked-in) reservations whose stay includes today. */
+    public List<Reservation> listCheckedInGuestsToday() {
+        List<Reservation> list = reservationService.listCheckedInStaysOnDate(userSession, LocalDate.now());
+        hydrateRooms(list);
+        return list;
     }
 
     public Optional<Reservation> findReservation(String confirmationNumber) {

@@ -52,7 +52,7 @@ public class MasterUI {
 
         JFrame frame = new JFrame("Hotel Reservation App");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(900, 500);
+        frame.setSize(1200, 780);
         frame.setLocationRelativeTo(null);
 
         CardLayout shellLayout = new CardLayout();
@@ -157,11 +157,13 @@ public class MasterUI {
 
         UserService userService = userController.getUserService();
 
+        Runnable showClerkHome = () -> clerkLayout.show(clerkShell, "CLERK");
+
         ClerkReservationsUI clerkReservationsPanel = new ClerkReservationsUI(
                 userSession,
                 reservationController,
                 shoppingController,
-                () -> clerkLayout.show(clerkShell, "CLERK")
+                showClerkHome
         );
 
         UpdateGuestPanel updateGuestPanel = new UpdateGuestPanel(
@@ -179,7 +181,7 @@ public class MasterUI {
         AddCA_UI addClerkAdmin = new AddCA_UI(userController);
         addClerkAdmin.setBackAction(e -> adminLayout.show(adminShell, "ADMIN"), "← Back to admin");
 
-        JPanel clerkPanel = new ClerkUI(
+        ClerkUI clerkHomePanel = new ClerkUI(
                 userSession,
                 openClerkAddRoomDialog,
                 openClerkModifyRoomDialog,
@@ -188,7 +190,12 @@ public class MasterUI {
                     clerkReservationsPanel.prepareShow();
                     clerkLayout.show(clerkShell, "CLERK_RES");
                 },
-                () -> clerkLayout.show(clerkShell, "CLERK")
+                reservationController,
+                confirmationNumber -> {
+                    clerkReservationsPanel.prepareShow();
+                    clerkReservationsPanel.selectReservationByConfirmation(confirmationNumber);
+                    clerkLayout.show(clerkShell, "CLERK_RES");
+                }
         );
 
         JPanel guestHomeWrap = new JPanel(new BorderLayout());
@@ -255,7 +262,7 @@ public class MasterUI {
         adminShell.add(adminPanel, "ADMIN");
         adminShell.add(addClerkAdmin, "ADD_USER_CLERK");
 
-        clerkShell.add(clerkPanel, "CLERK");
+        clerkShell.add(clerkHomePanel, "CLERK");
         clerkShell.add(clerkReservationsPanel, "CLERK_RES");
 
         Runnable refreshSessionUi = () -> {
