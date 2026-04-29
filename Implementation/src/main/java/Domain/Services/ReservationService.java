@@ -370,12 +370,6 @@ public class ReservationService {
             if (r.getGuestUserId() == null) {
                 throw new IllegalArgumentException("Reservation has no linked guest account; cannot check in.");
             }
-            LocalDate today = LocalDate.now();
-            if (today.isBefore(r.getDateRange().getCheckInDate())) {
-                throw new IllegalArgumentException(
-                        "Check-in is only allowed on or after the reservation check-in date ("
-                                + r.getDateRange().getCheckInDate() + ").");
-            }
             sqlite.setReservationActive(confirmationNumber, true);
             loadList();
         } catch (SQLException e) {
@@ -390,8 +384,10 @@ public class ReservationService {
             throw new IllegalArgumentException("Confirmation number is required.");
         }
         try {
-            if (sqlite.findByConfirmationNumber(confirmationNumber).isEmpty()) {
-                throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
+            Reservation row = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+            if (!row.isActive()) {
+                throw new IllegalStateException("This reservation is not active and cannot be checked out.");
             }
             sqlite.setReservationActive(confirmationNumber, false);
             loadList();

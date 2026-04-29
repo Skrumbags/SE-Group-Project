@@ -146,7 +146,7 @@ public class MasterUI {
                 return;
             }
             JDialog dlg = new JDialog(frame, "Check in / Check out guest", true);
-            ClerkCheckInOutUI ui = new ClerkCheckInOutUI(userSession, reservationController);
+            ClerkCheckInOutUI ui = new ClerkCheckInOutUI(userSession, reservationController, shoppingController);
             ui.setBackAction(e -> dlg.dispose(), "Close");
             dlg.setContentPane(ui);
             dlg.pack();
