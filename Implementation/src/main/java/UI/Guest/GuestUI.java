@@ -30,7 +30,6 @@ public class GuestUI extends JPanel {
 
     public GuestUI(User user,
                    ReservationController reservationController,
-                   Runnable onReservations,
                    Runnable onSearchRooms,
                    Runnable onShopBrowse,
                    Runnable onShopCart,
@@ -96,28 +95,28 @@ public class GuestUI extends JPanel {
         Font buttonFont = new Font("Segoe UI", Font.PLAIN, 17);
         Dimension buttonSize = new Dimension(260, 56);
 
-        JButton reservationsBtn = new JButton("Book a room");
-        reservationsBtn.setToolTipText("Create a new reservation");
-        reservationsBtn.addActionListener(e -> onReservations.run());
-        JButton searchBtn = new JButton("Search available rooms");
+        JButton manageBtn = new JButton("Manage Reservations");
+        manageBtn.setToolTipText("View or modify existing reservations");
+        manageBtn.addActionListener(e -> onManageReservations.run());
+        JButton searchBtn = new JButton("Search & Book Rooms");
         searchBtn.addActionListener(e -> onSearchRooms.run());
         JButton shopBtn = new JButton("Shopping");
         shopBtn.addActionListener(e -> onShopBrowse.run());
-        JButton cartBtn = new JButton("View cart");
+        JButton cartBtn = new JButton("View Cart");
         cartBtn.addActionListener(e -> onShopCart.run());
-        JButton billBtn = new JButton("Combined bill");
+        JButton billBtn = new JButton("Combined Bill");
         billBtn.addActionListener(e -> onCombinedBill.run());
-        JButton editProfile = new JButton("Edit profile");
+        JButton editProfile = new JButton("Edit Profile");
         editProfile.addActionListener(e -> onEditProfile.run());
 
-        for (JButton b : new JButton[]{reservationsBtn, searchBtn, shopBtn, cartBtn, billBtn, editProfile}) {
+        for (JButton b : new JButton[]{manageBtn, searchBtn, shopBtn, cartBtn, billBtn, editProfile}) {
             b.setFont(buttonFont);
             b.setPreferredSize(buttonSize);
             b.setMinimumSize(new Dimension(200, 52));
         }
 
         topRow.add(searchBtn);
-        topRow.add(reservationsBtn);
+        topRow.add(manageBtn);
         topRow.add(editProfile);
         bottomRow.add(shopBtn);
         bottomRow.add(cartBtn);
@@ -193,13 +192,6 @@ public class GuestUI extends JPanel {
         JScrollPane scroll = new JScrollPane(previewList);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         wrap.add(scroll, BorderLayout.CENTER);
-
-        JButton manageBtn = new JButton("Manage reservations");
-        manageBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        manageBtn.addActionListener(e -> onManageReservations.run());
-        JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        south.add(manageBtn);
-        wrap.add(south, BorderLayout.SOUTH);
 
         return wrap;
     }

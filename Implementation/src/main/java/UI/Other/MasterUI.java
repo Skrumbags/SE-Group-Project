@@ -70,7 +70,7 @@ public class MasterUI {
         JPanel adminShell = new JPanel(adminLayout);
 
         ReserveRoomUI reservePanel = new ReserveRoomUI(userSession, reservationController);
-        reservePanel.setBackAction(e -> guestLayout.show(guestShell, "HOME"), "← Back to guest home");
+        reservePanel.setBackAction(e -> guestLayout.show(guestShell, "SEARCH"), "← Back to search");
 
         CombinedBillUI billPanel = new CombinedBillUI(
                 shoppingController,
@@ -266,10 +266,6 @@ public class MasterUI {
                 GuestUI guestHome = new GuestUI(
                         u,
                         reservationController,
-                        () -> {
-                            reservePanel.refresh();
-                            guestLayout.show(guestShell, "RESERVE");
-                        },
                         () -> guestLayout.show(guestShell, "SEARCH"),
                         () -> {
                             shopPanel.refresh();
@@ -310,7 +306,6 @@ public class MasterUI {
         guestSearchNorth.add(guestSearchBack);
         guestSearch.add(guestSearchNorth, BorderLayout.NORTH);
         guestSearch.add(new RoomAvailabilityPanel(searchController, (room, range) -> {
-            reservePanel.refreshRoomOptions();
             reservePanel.applyPreselection(room.getRoomNumber(), range.getCheckInDate(), range.getCheckOutDate());
             guestLayout.show(guestShell, "RESERVE");
         }), BorderLayout.CENTER);
@@ -356,7 +351,6 @@ public class MasterUI {
                     shellLayout.show(shellRoot, "GUEST");
                     UserSession.PendingReservation pending = userSession.takePendingReservation();
                     if (pending != null) {
-                        reservePanel.refreshRoomOptions();
                         reservePanel.applyPreselection(pending.roomNumber(), pending.checkIn(), pending.checkOut());
                         guestLayout.show(guestShell, "RESERVE");
                     }

@@ -2,37 +2,26 @@ package UI.Guest;
 
 import Domain.People.UserSession;
 import Domain.Reservations.ReservationSummary;
-import Domain.Rooms.Room;
 import Domain.Shared.DateRange;
 import Controllers.ReservationController;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
-/**
- * Reserve-room UI flow (steps 1-8):
- * 1) Guest selects a room
- * 2) UI requests guest info + stay dates
- * 4-5) Use case validates and builds a cost summary
- * 6-8) Guest confirms; reservation is saved; confirmation number shown
- */
 public class ReserveRoomUI extends JPanel {
-
-    private static final String DATE_PLACEHOLDER = "YYYY-MM-DD";
 
     private final ReservationController ResC;
     private final UserSession userSession;
 
-    private final JComboBox<Integer> roomNumberCombo;
+    private final JLabel roomNumberLabel = new JLabel("");
+    private final JLabel checkInDateLabel = new JLabel("");
+    private final JLabel checkOutDateLabel = new JLabel("");
+
     private final JTextField guestNameField = new JTextField(15);
     private final JTextField creditCardField = new JTextField(16);
-    private final JTextField checkInDateField = new JTextField(10);
-    private final JTextField checkOutDateField = new JTextField(10);
     private final JButton backButton = new JButton();
 
     private ReservationSummary currentPreview;
@@ -44,28 +33,25 @@ public class ReserveRoomUI extends JPanel {
         setLayout(new GridLayout(8, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Step 1: select desired room
-        roomNumberCombo = new JComboBox<>();
-        refreshRoomOptions();
-
+        // 1. Room Number
         add(new JLabel("Room Number:"));
-        add(roomNumberCombo);
+        add(roomNumberLabel);
 
-        // Step 2: request guest info + dates
+        // 2. Check-in Date
+        add(new JLabel("Check-in Date:"));
+        add(checkInDateLabel);
+
+        // 3. Check-out Date
+        add(new JLabel("Check-out Date:"));
+        add(checkOutDateLabel);
+
+        // 4. Guest Name (Mutable)
         add(new JLabel("Guest Name:"));
         add(guestNameField);
 
+        // 5. Credit Card (Mutable)
         add(new JLabel("Credit Card #:"));
         add(creditCardField);
-
-        add(new JLabel("Check-in (YYYY-MM-DD):"));
-        add(checkInDateField);
-
-        add(new JLabel("Check-out (YYYY-MM-DD):"));
-        add(checkOutDateField);
-
-        installDatePlaceholder(checkInDateField);
-        installDatePlaceholder(checkOutDateField);
 
         // Step 5-6: show summary then confirm
         JButton previewButton = new JButton("Calculate Cost");
@@ -80,66 +66,39 @@ public class ReserveRoomUI extends JPanel {
         backButton.setVisible(false);
     }
 
-    public void refreshRoomOptions() {
-        roomNumberCombo.removeAllItems();
-        for (Room r : ResC.getRooms()) {
-            roomNumberCombo.addItem(r.getRoomNumber());
-        }
-    }
-
-    /**
-     * After choosing a room and dates elsewhere (e.g. calendar search), skip manual combo/date entry.
-     */
     public void applyPreselection(int roomNumber, LocalDate checkIn, LocalDate checkOut) {
         currentPreview = null;
-        refreshRoomOptions();
-        boolean found = false;
-        for (int i = 0; i < roomNumberCombo.getItemCount(); i++) {
-            Integer n = roomNumberCombo.getItemAt(i);
-            if (n != null && n == roomNumber) {
-                roomNumberCombo.setSelectedIndex(i);
-                found = true;
-                break;
-            }
-        }
-        if (!found && roomNumberCombo.getItemCount() > 0) {
-            roomNumberCombo.insertItemAt(roomNumber, 0);
-            roomNumberCombo.setSelectedIndex(0);
-        }
+        roomNumberLabel.setText(String.valueOf(roomNumber));
+        checkInDateLabel.setText(checkIn.toString());
+        checkOutDateLabel.setText(checkOut.toString());
 
-        Color fg = UIManager.getColor("TextField.foreground");
-        if (fg == null) {
-            fg = Color.BLACK;
-        }
-        checkInDateField.setText(checkIn.toString());
-        checkInDateField.setForeground(fg);
-        checkOutDateField.setText(checkOut.toString());
-        checkOutDateField.setForeground(fg);
+        guestNameField.setText("");
+        creditCardField.setText("");
     }
 
     private void handlePreview() {
         try {
-            int roomNumber = (Integer) roomNumberCombo.getSelectedItem();
+            if (roomNumberLabel.getText().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please select a room from the search page first.", "Missing Room", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int roomNumber = Integer.parseInt(roomNumberLabel.getText().trim());
             String guestName = guestNameField.getText();
             String creditCard = creditCardField.getText();
 
-            String checkInRaw = dateFieldText(checkInDateField);
-            String checkOutRaw = dateFieldText(checkOutDateField);
+            String checkInRaw = checkInDateLabel.getText().trim();
+            String checkOutRaw = checkOutDateLabel.getText().trim();
+
             if (checkInRaw.isEmpty() || checkOutRaw.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please enter check-in and check-out dates.", "Missing Dates", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Please select dates from the search page first.", "Missing Dates", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            LocalDate checkIn = parseDate(checkInRaw);
-            LocalDate checkOut = parseDate(checkOutRaw);
+
+            LocalDate checkIn = LocalDate.parse(checkInRaw);
+            LocalDate checkOut = LocalDate.parse(checkOutRaw);
             DateRange dateRange = new DateRange(checkIn, checkOut);
 
-            // Steps 4-5: validate and compute preview summary
-            currentPreview = ResC.reserveRoom(
-                    roomNumber,
-                    guestName,
-                    creditCard,
-                    dateRange
-            );
+            currentPreview = ResC.reserveRoom(roomNumber, guestName, creditCard, dateRange);
 
             JOptionPane.showMessageDialog(this, currentPreview.toString(), "Reservation Summary", JOptionPane.INFORMATION_MESSAGE);
         } catch (IllegalStateException | IllegalArgumentException ex) {
@@ -156,7 +115,6 @@ public class ReserveRoomUI extends JPanel {
                 return;
             }
 
-            // Steps 6-8: save reservation and show confirmation
             String confirmationNumber = ResC.confirmAndSaveReservation(currentPreview, true);
             currentPreview = null;
             JOptionPane.showMessageDialog(this, "Reservation confirmed! Confirmation: " + confirmationNumber, "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -165,65 +123,20 @@ public class ReserveRoomUI extends JPanel {
         }
     }
 
-    private LocalDate parseDate(String text) {
-        return LocalDate.parse(text);
-    }
-
-    /** Returns trimmed text, or empty if the field still shows the placeholder. */
-    private static String dateFieldText(JTextField field) {
-        String t = field.getText().trim();
-        if (t.isEmpty() || DATE_PLACEHOLDER.equals(t)) {
-            return "";
-        }
-        return t;
-    }
-
-    private static void installDatePlaceholder(JTextField field) {
-        Color normalFg = UIManager.getColor("TextField.foreground");
-        Color inactiveFg = UIManager.getColor("TextField.inactiveForeground");
-        final Color hintColor = inactiveFg != null ? inactiveFg : Color.GRAY;
-        final Color normalColor = normalFg != null ? normalFg : Color.BLACK;
-        field.setText(DATE_PLACEHOLDER);
-        field.setForeground(hintColor);
-        field.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (DATE_PLACEHOLDER.equals(field.getText())) {
-                    field.setText("");
-                    field.setForeground(normalColor);
-                }
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (field.getText().isEmpty()) {
-                    field.setText(DATE_PLACEHOLDER);
-                    field.setForeground(hintColor);
-                }
-            }
-        });
-    }
-
     public void setBackAction(ActionListener goBack, String backMessage) {
         backButton.addActionListener(goBack);
-        backButton.setLabel(backMessage);
+        backButton.setText(backMessage);
         backButton.setVisible(true);
     }
 
     public void refresh() {
         currentPreview = null;
-        refreshRoomOptions();
+        roomNumberLabel.setText("");
+        checkInDateLabel.setText("");
+        checkOutDateLabel.setText("");
+
         guestNameField.setText("");
         creditCardField.setText("");
-        resetDateField(checkInDateField);
-        resetDateField(checkOutDateField);
-    }
-
-    private void resetDateField(JTextField field) {
-        Color inactiveFg = UIManager.getColor("TextField.inactiveForeground");
-        Color hintColor = inactiveFg != null ? inactiveFg : Color.GRAY;
-        field.setText(DATE_PLACEHOLDER);
-        field.setForeground(hintColor);
     }
 }
 
