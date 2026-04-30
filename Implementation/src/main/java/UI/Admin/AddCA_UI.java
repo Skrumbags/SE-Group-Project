@@ -68,6 +68,12 @@ public class AddCA_UI extends JPanel {
                     "Invalid Input", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        if (userController.employeeIdExists(id)) {
+            JOptionPane.showMessageDialog(this,
+                    "Employee ID \"" + id + "\" is already assigned to another staff account.",
+                    "Duplicate Employee ID", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (userController.exists(username)) {
             JOptionPane.showMessageDialog(this,
                     "Username \"" + username + "\" is already taken. Please choose another.",
@@ -85,6 +91,10 @@ public class AddCA_UI extends JPanel {
                     JOptionPane.showMessageDialog(this,
                             "Username \"" + username + "\" is already taken. Please choose another.",
                             "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            case DUPLICATE_EMPLOYEE_ID ->
+                    JOptionPane.showMessageDialog(this,
+                            "Employee ID \"" + id + "\" is already assigned to another staff account.",
+                            "Duplicate Employee ID", JOptionPane.WARNING_MESSAGE);
             case INVALID_INPUT ->
                     JOptionPane.showMessageDialog(this,
                             "Username, password, and full name are required.",

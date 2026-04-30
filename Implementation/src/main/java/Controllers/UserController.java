@@ -59,6 +59,10 @@ public class UserController {
         return userService.emailExists(email);
     }
 
+    public boolean employeeIdExists(int employeeId) {
+        return userService.employeeIdExists(employeeId);
+    }
+
     public UserService getUserService() {
         return userService;
     }

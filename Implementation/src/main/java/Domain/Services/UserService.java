@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserService {
-    public enum Result { SUCCESS, DUPLICATE_USERNAME, DUPLICATE_EMAIL, INVALID_INPUT, INCORRECT_PASSWORD }
+    public enum Result { SUCCESS, DUPLICATE_USERNAME, DUPLICATE_EMAIL, DUPLICATE_EMPLOYEE_ID, INVALID_INPUT, INCORRECT_PASSWORD }
 
     private final List<User> users;
     private final SqliteUserPersistence userDb;
@@ -96,12 +96,24 @@ public class UserService {
                 .anyMatch(needle::equals);
     }
 
+    /** True if a clerk/admin already uses this employee id. */
+    public boolean employeeIdExists(int employeeId) {
+        return users.stream().anyMatch(u -> {
+            if (u instanceof Clerk c) return c.getEmployeeId() == employeeId;
+            if (u instanceof Admin a) return a.getEmployeeId() == employeeId;
+            return false;
+        });
+    }
+
     public Result addClerk(int employeeId, String username, String password, String name) {
         if (employeeId < 0 || username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
         if (exists(username)) {
             return Result.DUPLICATE_USERNAME;
+        }
+        if (employeeIdExists(employeeId)) {
+            return Result.DUPLICATE_EMPLOYEE_ID;
         }
 
         String encoded = PasswordHasher.hashPassword(password);
@@ -124,6 +136,9 @@ public class UserService {
         }
         if (exists(username)) {
             return Result.DUPLICATE_USERNAME;
+        }
+        if (employeeIdExists(employeeId)) {
+            return Result.DUPLICATE_EMPLOYEE_ID;
         }
 
         String encoded = PasswordHasher.hashPassword(password);

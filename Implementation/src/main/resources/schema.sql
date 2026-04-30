@@ -1,13 +1,14 @@
 -- Registered users (guests, staff). Surrogate PK id, username unique for login.
 CREATE TABLE IF NOT EXISTS Users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    name TEXT NOT NULL,
-    phone TEXT,
-    email TEXT,
-    role TEXT NOT NULL,
-    employee_id INTEGER
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  role TEXT NOT NULL,
+  employee_id INTEGER,
+  UNIQUE(employee_id)
 );
 
 -- Hotel rooms (used by Add Room UI and reservation room_number)
