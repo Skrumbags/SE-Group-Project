@@ -60,13 +60,13 @@ public class ProfileUI extends JPanel {
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         JButton saveBtn = new JButton("Save Changes");
-        JButton cancelBtn = new JButton("Cancel");
+        JButton backBtn = new JButton("← Back to Home");
+        buttons.add(backBtn);
         buttons.add(saveBtn);
-        buttons.add(cancelBtn);
         add(buttons, BorderLayout.SOUTH);
 
         saveBtn.addActionListener(e -> handleSave(onBack));
-        cancelBtn.addActionListener(e -> onBack.run());
+        backBtn.addActionListener(e -> onBack.run());
     }
 
     private void addFormRow(JPanel panel, GridBagConstraints gbc, JLabel label, JComponent field, int y) {
