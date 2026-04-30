@@ -84,7 +84,11 @@ public class MasterUI {
         CartUI cartPanel = new CartUI(
                 shoppingController,
                 () -> guestLayout.show(guestShell, "HOME"),
-                () -> guestLayout.show(guestShell, "SHOP")
+                () -> guestLayout.show(guestShell, "SHOP"),
+                () -> {
+                    billPanel.refresh();
+                    guestLayout.show(guestShell, "BILL");
+                }
         );
 
         ProductCatalogUI shopPanel = new ProductCatalogUI(

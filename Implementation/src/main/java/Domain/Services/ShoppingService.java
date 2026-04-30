@@ -13,6 +13,8 @@ import TechnicalServices.Persistence.SqliteStorePersistence;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ShoppingService {
 
@@ -141,25 +143,58 @@ public class ShoppingService {
         return buildCombinedBillForGuestId(guestUserId, reservationService);
     }
 
+    /**
+     * If the guest has an active stay today, the bill is scoped to that reservation (room row + purchases
+     * tied to its confirmation). Otherwise all reservations and all purchases for the guest are included
+     * (e.g. after checkout or when viewing history while not checked in).
+     */
     private CombinedBill buildCombinedBillForGuestId(long guestId, ReservationService reservationService) {
-        List<Reservation> reservations = reservationService.getReservations().stream()
+        List<Reservation> allForGuest = reservationService.getReservations().stream()
                 .filter(r -> r.getGuestUserId() != null && r.getGuestUserId().equals(guestId))
                 .toList();
-        double staySubtotal = roundMoney(reservations.stream().mapToDouble(Reservation::getTotalCost).sum());
-        double roomTax = roundMoney(staySubtotal * taxRate);
-        double stayTotal = roundMoney(staySubtotal + roomTax);
 
-        List<Purchase> purchases;
+        LocalDate today = LocalDate.now();
+        List<Reservation> activeToday = allForGuest.stream()
+                .filter(Reservation::isActive)
+                .filter(r -> stayIncludesNight(r, today))
+                .toList();
+
+        List<Reservation> reservationsForBill;
+        List<Purchase> purchasesForBill;
         try {
-            purchases = storeDb.listPurchasesForGuest(guestId);
+            List<Purchase> allPurchases = storeDb.listPurchasesForGuest(guestId);
+            if (!activeToday.isEmpty()) {
+                reservationsForBill = activeToday;
+                Set<String> activeConfs = activeToday.stream()
+                        .map(Reservation::getConfirmationNumber)
+                        .collect(Collectors.toSet());
+                purchasesForBill = allPurchases.stream()
+                        .filter(p -> {
+                            String c = p.getReservationConfirmationOrNull();
+                            return c != null && activeConfs.contains(c);
+                        })
+                        .toList();
+            } else {
+                reservationsForBill = allForGuest;
+                purchasesForBill = allPurchases;
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load purchases", e);
         }
-        double shoppingSubtotal = roundMoney(purchases.stream().mapToDouble(Purchase::getSubtotal).sum());
+
+        double staySubtotal = roundMoney(reservationsForBill.stream().mapToDouble(Reservation::getTotalCost).sum());
+        double roomTax = roundMoney(staySubtotal * taxRate);
+        double stayTotal = roundMoney(staySubtotal + roomTax);
+        double shoppingSubtotal = roundMoney(purchasesForBill.stream().mapToDouble(Purchase::getSubtotal).sum());
         double combinedTotal = roundMoney(stayTotal + shoppingSubtotal);
 
-        return new CombinedBill(guestId, reservations, purchases,
+        return new CombinedBill(guestId, reservationsForBill, purchasesForBill,
                 staySubtotal, roomTax, stayTotal, shoppingSubtotal, combinedTotal);
+    }
+
+    private static boolean stayIncludesNight(Reservation r, LocalDate night) {
+        var dr = r.getDateRange();
+        return !night.isBefore(dr.getCheckInDate()) && night.isBefore(dr.getCheckOutDate());
     }
 
     private static double roundMoney(double v) {
