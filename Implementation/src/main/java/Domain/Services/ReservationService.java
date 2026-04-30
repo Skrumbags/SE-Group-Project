@@ -62,6 +62,28 @@ public class ReservationService {
                 .toList();
     }
 
+    /**
+     * Rooms with at least one free night in {@code [startInclusive, endExclusive)}.
+     * Useful for discovery/search UIs that let guests pick a shorter stay from a broader window.
+     */
+    public List<Room> calculateAnyAvailability(List<Room> rooms, LocalDate startInclusive, LocalDate endExclusive) {
+        return rooms.stream()
+                .filter(r -> hasAnyAvailability(r, startInclusive, endExclusive))
+                .toList();
+    }
+
+    /**
+     * True when the room is free for at least one overnight period in the window.
+     */
+    public boolean hasAnyAvailability(Room room, LocalDate startInclusive, LocalDate endExclusive) {
+        for (LocalDate night = startInclusive; night.isBefore(endExclusive); night = night.plusDays(1)) {
+            if (!isReserved(room, night, night.plusDays(1))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean isReserved(Room room, DateRange dateRange) {
         return isReserved(room, dateRange.getCheckInDate(), dateRange.getCheckOutDate());
     }

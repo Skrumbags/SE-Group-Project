@@ -31,7 +31,7 @@ public class SearchController {
     public List<Room> searchRooms(SearchCriteria criteria) {
         List<Room> potentialMatches = RS.searchRooms(criteria.getRoomType(), criteria.getNumGuests());
 
-        return ResS.calculateOverlap(
+        return ResS.calculateAnyAvailability(
                 potentialMatches,
                 criteria.getSearchStartInclusive(),
                 criteria.getSearchEndExclusive());
