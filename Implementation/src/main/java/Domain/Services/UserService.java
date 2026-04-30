@@ -17,6 +17,15 @@ import java.util.List;
 public class UserService {
     public enum Result { SUCCESS, DUPLICATE_USERNAME, INVALID_INPUT }
 
+    /** Outcome of {@link #resetGuestPassword(String, String, String)} for guest self-service reset. */
+    public enum GuestPasswordResetResult {
+        NO_VALID_EMAIL,
+        PASSWORD_BLANK,
+        PASSWORD_MISMATCH,
+        SAVE_FAILED,
+        SUCCESS
+    }
+
     private final List<User> users;
     private final SqliteUserPersistence userDb;
 
@@ -135,6 +144,50 @@ public class UserService {
                 .filter(u -> u.getUsername().equals(username))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Finds a guest by account email (trimmed, case-insensitive). Null or blank email argument yields null.
+     */
+    public Guest findGuestByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        String trimmed = email.trim();
+        return users.stream()
+                .filter(u -> u instanceof Guest)
+                .map(u -> (Guest) u)
+                .filter(g -> {
+                    String em = g.getEmail();
+                    return em != null && !em.isBlank() && em.trim().equalsIgnoreCase(trimmed);
+                })
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Sets a new encoded password for the guest with the given email. Requires SQLite backing store and row id.
+     */
+    public GuestPasswordResetResult resetGuestPassword(String email, String newPassword, String confirmPassword) {
+        Guest g = findGuestByEmail(email);
+        if (g == null) {
+            return GuestPasswordResetResult.NO_VALID_EMAIL;
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            return GuestPasswordResetResult.PASSWORD_BLANK;
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            return GuestPasswordResetResult.PASSWORD_MISMATCH;
+        }
+        if (userDb == null || g.getDatabaseId() == null) {
+            return GuestPasswordResetResult.SAVE_FAILED;
+        }
+        String encoded = PasswordHasher.hashPassword(newPassword);
+        User updated = updatePassword(g.getDatabaseId(), encoded);
+        if (updated == null) {
+            return GuestPasswordResetResult.SAVE_FAILED;
+        }
+        return GuestPasswordResetResult.SUCCESS;
     }
 
     public boolean exists(String username) {

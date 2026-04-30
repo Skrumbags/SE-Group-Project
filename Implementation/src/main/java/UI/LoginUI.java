@@ -91,5 +91,14 @@ public class LoginUI extends JPanel {
         gbc.gridy = 4;
         gbc.gridwidth = 2;
         add(createUser, gbc);
+
+        JButton resetPassword = new JButton("Reset guest password");
+        resetPassword.addActionListener(e -> {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            GuestPasswordResetDialog dlg = new GuestPasswordResetDialog(owner, userController);
+            dlg.setVisible(true);
+        });
+        gbc.gridy = 5;
+        add(resetPassword, gbc);
     }
 }

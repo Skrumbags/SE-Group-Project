@@ -44,6 +44,15 @@ public class UserController {
         return userService.exists(username);
     }
 
+    public Guest findGuestByEmail(String email) {
+        return userService.findGuestByEmail(email);
+    }
+
+    public UserService.GuestPasswordResetResult resetGuestPassword(String email, String newPassword,
+                                                                   String confirmPassword) {
+        return userService.resetGuestPassword(email, newPassword, confirmPassword);
+    }
+
     public UserService getUserService() {
         return userService;
     }
