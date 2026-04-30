@@ -62,7 +62,16 @@ public class LoginUI extends JPanel {
             String username = usernameField.getText().trim();
             String password = new String(passwordField.getPassword());
 
-            User user = userController.login(username, password);
+            User user;
+            try {
+                user = userController.login(username, password);
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this,
+                        ex.getMessage(),
+                        "Login locked",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
             if (user == null) {
                 JOptionPane.showMessageDialog(this,
