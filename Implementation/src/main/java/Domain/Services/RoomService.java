@@ -59,7 +59,12 @@ public class RoomService {
 
     public List<Room> searchRooms(RoomType roomType, Boolean smoking) {
         return rooms.stream()
-                .filter(r -> r.getRoomType().equals(roomType))
+                .filter(r -> {
+                    if (roomType == null) return true;
+                    boolean floorMatch = (roomType.getFloorType() == null || r.getRoomType().getFloorType() == roomType.getFloorType());
+                    boolean bedMatch = (roomType.getBedType() == null || r.getRoomType().getBedType() == roomType.getBedType());
+                    return floorMatch && bedMatch;
+                })
                 .filter(r -> smoking == null || r.isSmoking() == smoking)
                 .toList();
     }

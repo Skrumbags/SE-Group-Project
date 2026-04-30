@@ -213,8 +213,14 @@ public class GuestReservationsUI extends JPanel {
         JTextField inField = new JTextField(currentIn, 10);
         JTextField outField = new JTextField(currentOut, 10);
 
-        JComboBox<Domain.Rooms.RoomType.FloorType> floorCombo = new JComboBox<>(Domain.Rooms.RoomType.FloorType.values());
-        JComboBox<Domain.Rooms.RoomType.BedType> bedCombo = new JComboBox<>(Domain.Rooms.RoomType.BedType.values());
+        JComboBox<String> floorCombo = new JComboBox<>();
+        floorCombo.addItem("Any");
+        for (Domain.Rooms.RoomType.FloorType f : Domain.Rooms.RoomType.FloorType.values()) floorCombo.addItem(f.name());
+
+        JComboBox<String> bedCombo = new JComboBox<>();
+        bedCombo.addItem("Any");
+        for (Domain.Rooms.RoomType.BedType b : Domain.Rooms.RoomType.BedType.values()) bedCombo.addItem(b.name());
+
         JComboBox<String> smokingCombo = new JComboBox<>(new String[]{"Any", "Smoking", "Non-smoking"});
 
         Room fullRoom = reservationController.getRooms().stream()
@@ -225,8 +231,8 @@ public class GuestReservationsUI extends JPanel {
         // Set the dropdown defaults
         if (fullRoom != null) {
             if (fullRoom.getRoomType() != null) {
-                floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType());
-                bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType());
+                floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType().name());
+                bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType().name());
             }
             smokingCombo.setSelectedItem(fullRoom.isSmoking() ? "Smoking" : "Non-smoking");
         }
@@ -252,8 +258,10 @@ public class GuestReservationsUI extends JPanel {
 
             DateRange newDates = new DateRange(in, out);
 
-            Domain.Rooms.RoomType.FloorType prefFloor = (Domain.Rooms.RoomType.FloorType) floorCombo.getSelectedItem();
-            Domain.Rooms.RoomType.BedType prefBed = (Domain.Rooms.RoomType.BedType) bedCombo.getSelectedItem();
+            String floorSel = (String) floorCombo.getSelectedItem();
+            String bedSel = (String) bedCombo.getSelectedItem();
+            Domain.Rooms.RoomType.FloorType prefFloor = "Any".equals(floorSel) ? null : Domain.Rooms.RoomType.FloorType.valueOf(floorSel);
+            Domain.Rooms.RoomType.BedType prefBed = "Any".equals(bedSel) ? null : Domain.Rooms.RoomType.BedType.valueOf(bedSel);
 
             Boolean isSmoking = null; // Default to "Any"
             String smokingSelection = (String) smokingCombo.getSelectedItem();
@@ -267,9 +275,11 @@ public class GuestReservationsUI extends JPanel {
             List<Room> allAvailable = reservationController.getAvailableRoomsForModification(newDates, r.getConfirmationNumber());
             List<Room> filteredRooms = new ArrayList<>();
             for (Room room : allAvailable) {
+                boolean floorMatch = (prefFloor == null || room.getRoomType().getFloorType() == prefFloor);
+                boolean bedMatch = (prefBed == null || room.getRoomType().getBedType() == prefBed);
                 boolean smokingMatch = (isSmoking == null || room.isSmoking() == isSmoking);
 
-                if (room.getRoomType().getFloorType() == prefFloor && room.getRoomType().getBedType() == prefBed && smokingMatch) {
+                if (floorMatch && bedMatch && smokingMatch) {
                     filteredRooms.add(room);
                 }
             }

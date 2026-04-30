@@ -17,7 +17,7 @@ public class SearchCriteria {
 
     private final LocalDate searchStartInclusive;
     private final LocalDate searchEndExclusive;
-    private final RoomType roomType;
+    private final RoomType roomType; // 'null' represents 'Any' for both Floor and Bed type
     private final Boolean smoking; // 'null' represents 'Any', 'true' for smoking, 'false' for non-smoking
 
     public SearchCriteria(LocalDate searchStartInclusive, LocalDate searchEndExclusive,
