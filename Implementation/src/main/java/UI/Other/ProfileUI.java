@@ -139,6 +139,7 @@ public class ProfileUI extends JPanel {
                 onBack.run();
             }
             case DUPLICATE_USERNAME -> JOptionPane.showMessageDialog(this, "Username is already taken.", "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            case DUPLICATE_EMAIL -> JOptionPane.showMessageDialog(this, "Email is already associated with another account.", "Duplicate Email", JOptionPane.WARNING_MESSAGE);
             case INVALID_INPUT -> JOptionPane.showMessageDialog(this, "Invalid input. Check lengths and formats.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
             case INCORRECT_PASSWORD -> JOptionPane.showMessageDialog(this, "Old password is incorrect.", "Incorrect Password", JOptionPane.ERROR_MESSAGE);
         }

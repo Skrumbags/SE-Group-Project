@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserService {
-    public enum Result { SUCCESS, DUPLICATE_USERNAME, INVALID_INPUT, INCORRECT_PASSWORD }
+    public enum Result { SUCCESS, DUPLICATE_USERNAME, DUPLICATE_EMAIL, INVALID_INPUT, INCORRECT_PASSWORD }
 
     private final List<User> users;
     private final SqliteUserPersistence userDb;
@@ -66,6 +66,9 @@ public class UserService {
         if (exists(username)) {
             return Result.DUPLICATE_USERNAME;
         }
+        if (email != null && !email.isBlank() && emailExists(email)) {
+            return Result.DUPLICATE_EMAIL;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Guest guest = new Guest(username, encoded, name, phone, email);
@@ -79,6 +82,18 @@ public class UserService {
             }
         }
         return Result.SUCCESS;
+    }
+
+    /** True if a guest already uses this email (case-insensitive). */
+    public boolean emailExists(String email) {
+        if (email == null || email.isBlank()) return false;
+        String needle = email.trim().toLowerCase();
+        return users.stream()
+                .filter(u -> u instanceof Guest)
+                .map(u -> ((Guest) u).getEmail())
+                .filter(e -> e != null && !e.isBlank())
+                .map(e -> e.trim().toLowerCase())
+                .anyMatch(needle::equals);
     }
 
     public Result addClerk(int employeeId, String username, String password, String name) {

@@ -74,6 +74,12 @@ public class CreateAccountUI extends JPanel {
                     "Invalid Input", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        if (!email.isBlank() && userController.emailExists(email)) {
+            JOptionPane.showMessageDialog(this,
+                    "Email \"" + email + "\" is already associated with an existing account.",
+                    "Duplicate Email", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (userController.exists(username)) {
             JOptionPane.showMessageDialog(this,
                     "Username \"" + username + "\" is already taken. Please choose another.",
@@ -91,6 +97,10 @@ public class CreateAccountUI extends JPanel {
                     JOptionPane.showMessageDialog(this,
                             "Username \"" + username + "\" is already taken. Please choose another.",
                             "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            case DUPLICATE_EMAIL ->
+                    JOptionPane.showMessageDialog(this,
+                            "Email \"" + email + "\" is already associated with an existing account.",
+                            "Duplicate Email", JOptionPane.WARNING_MESSAGE);
             case INVALID_INPUT ->
                     JOptionPane.showMessageDialog(this,
                             "Username, password, and full name are required.",

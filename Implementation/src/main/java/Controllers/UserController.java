@@ -44,6 +44,10 @@ public class UserController {
         return userService.exists(username);
     }
 
+    public boolean emailExists(String email) {
+        return userService.emailExists(email);
+    }
+
     public UserService getUserService() {
         return userService;
     }

@@ -61,7 +61,8 @@ public class PublicUI extends JPanel {
         tag.setFont(new Font("SansSerif", Font.PLAIN, 15));
         northStack.add(tag);
         landing.add(northStack, BorderLayout.NORTH);
-        landing.add(new RoomAvailabilityPanel(searchController, (room, range) -> {
+
+        RoomAvailabilityPanel availability = new RoomAvailabilityPanel(searchController, (room, range) -> {
             userSession.setPendingReservation(new UserSession.PendingReservation(
                     room.getRoomNumber(), range.getCheckInDate(), range.getCheckOutDate()));
             JOptionPane.showMessageDialog(this,
@@ -72,7 +73,10 @@ public class PublicUI extends JPanel {
                     JOptionPane.INFORMATION_MESSAGE);
             loginPanel.refresh();
             bodyCards.show(body, "LOGIN");
-        }), BorderLayout.SOUTH);
+        });
+        // Center the search area vertically instead of pinning it to the bottom.
+        landing.add(availability, BorderLayout.CENTER);
+        landing.add(Box.createVerticalStrut(10), BorderLayout.SOUTH);
 
 
 
