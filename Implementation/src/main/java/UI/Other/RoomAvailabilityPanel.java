@@ -63,8 +63,8 @@ public class RoomAvailabilityPanel extends JPanel {
 
         JComboBox<RoomType.FloorType> floorBox = new JComboBox<>(RoomType.FloorType.values());
         JComboBox<RoomType.BedType>   bedBox   = new JComboBox<>(RoomType.BedType.values());
-        JTextField guestsField = new JTextField(3);
-        guestsField.setPreferredSize(new Dimension(50, 30));
+        JComboBox<String> smokingBox = new JComboBox<>(new String[]{"Any", "Smoking", "Non-smoking"});
+        smokingBox.setPreferredSize(new Dimension(100, 30));
 
         JButton searchButton = new JButton("Search rooms");
         searchButton.setBackground(BLUE);
@@ -75,12 +75,12 @@ public class RoomAvailabilityPanel extends JPanel {
         searchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         searchButton.setPreferredSize(new Dimension(130, 30));
 
-        // row 1 — dates and guests
+        // row 1 — dates and smoking preference
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
         row1.setBackground(CARD_BG);
         row1.add(makeBarLabel("From:"));  row1.add(beginDate);
         row1.add(makeBarLabel("To:"));    row1.add(endDate);
-        row1.add(makeBarLabel("Guests:")); row1.add(guestsField);
+        row1.add(makeBarLabel("Smoking:")); row1.add(smokingBox);
 
         // row 2 — filters and button
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
@@ -111,12 +111,6 @@ public class RoomAvailabilityPanel extends JPanel {
             try {
                 LocalDate start = LocalDate.parse((String) beginDate.getValue(), BAR_DATE);
                 LocalDate end   = LocalDate.parse((String) endDate.getValue(), BAR_DATE);
-                int numGuests   = Integer.parseInt(guestsField.getText().trim());
-                if (numGuests <= 0) {
-                    JOptionPane.showMessageDialog(this, "Guests must be at least 1.",
-                            "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
 
                 long span = ChronoUnit.DAYS.between(start, end);
                 if (span <= 0) {
@@ -136,7 +130,16 @@ public class RoomAvailabilityPanel extends JPanel {
                         (RoomType.FloorType) floorBox.getSelectedItem(),
                         (RoomType.BedType)   bedBox.getSelectedItem()
                 );
-                SearchCriteria criteria = new SearchCriteria(start, end, roomType, numGuests);
+
+                Boolean isSmoking = null; // Default to "Any"
+                String smokingSelection = (String) smokingBox.getSelectedItem();
+                if ("Smoking".equals(smokingSelection)) {
+                    isSmoking = true;
+                } else if ("Non-smoking".equals(smokingSelection)) {
+                    isSmoking = false;
+                }
+
+                SearchCriteria criteria = new SearchCriteria(start, end, roomType, isSmoking);
                 List<Room> results = searchController.searchRooms(criteria);
 
                 lastSearchStartInclusive = start;
@@ -153,9 +156,6 @@ public class RoomAvailabilityPanel extends JPanel {
             } catch (java.time.format.DateTimeParseException ex) {
                 JOptionPane.showMessageDialog(this, "Please choose valid From and To dates.",
                         "Invalid Dates", JOptionPane.ERROR_MESSAGE);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Please enter a valid number of guests.",
-                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
             } catch (IllegalArgumentException ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(),
                         "Invalid Dates", JOptionPane.ERROR_MESSAGE);

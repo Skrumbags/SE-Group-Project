@@ -12,20 +12,16 @@ package Domain.Rooms;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-/**
- * Room search window: {@code [from, to)} in the same sense as reservation dates.
- * Span is limited to {@link #MAX_SEARCH_SPAN_DAYS} (1 year) and must be at least one night.
- */
 public class SearchCriteria {
     public static final int MAX_SEARCH_SPAN_DAYS = 365;
 
     private final LocalDate searchStartInclusive;
     private final LocalDate searchEndExclusive;
     private final RoomType roomType;
-    private final int numGuests;
+    private final Boolean smoking; // 'null' represents 'Any', 'true' for smoking, 'false' for non-smoking
 
     public SearchCriteria(LocalDate searchStartInclusive, LocalDate searchEndExclusive,
-                          RoomType roomType, int numGuests) {
+                          RoomType roomType, Boolean smoking) {
         long span = ChronoUnit.DAYS.between(searchStartInclusive, searchEndExclusive);
         if (span <= 0) {
             throw new IllegalArgumentException("Search \"To\" date must be after \"From\".");
@@ -37,7 +33,7 @@ public class SearchCriteria {
         this.searchStartInclusive = searchStartInclusive;
         this.searchEndExclusive = searchEndExclusive;
         this.roomType = roomType;
-        this.numGuests = numGuests;
+        this.smoking = smoking;
     }
 
     public LocalDate getSearchStartInclusive() {
@@ -52,7 +48,7 @@ public class SearchCriteria {
         return roomType;
     }
 
-    public int getNumGuests() {
-        return numGuests;
+    public Boolean getSmoking() {
+        return smoking;
     }
 }

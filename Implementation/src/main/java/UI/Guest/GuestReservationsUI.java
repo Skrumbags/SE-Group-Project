@@ -215,6 +215,7 @@ public class GuestReservationsUI extends JPanel {
 
         JComboBox<Domain.Rooms.RoomType.FloorType> floorCombo = new JComboBox<>(Domain.Rooms.RoomType.FloorType.values());
         JComboBox<Domain.Rooms.RoomType.BedType> bedCombo = new JComboBox<>(Domain.Rooms.RoomType.BedType.values());
+        JComboBox<String> smokingCombo = new JComboBox<>(new String[]{"Any", "Smoking", "Non-smoking"});
 
         Room fullRoom = reservationController.getRooms().stream()
                 .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
@@ -222,16 +223,20 @@ public class GuestReservationsUI extends JPanel {
                 .orElse(null);
 
         // Set the dropdown defaults
-        if (fullRoom != null && fullRoom.getRoomType() != null) {
-            floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType());
-            bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType());
+        if (fullRoom != null) {
+            if (fullRoom.getRoomType() != null) {
+                floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType());
+                bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType());
+            }
+            smokingCombo.setSelectedItem(fullRoom.isSmoking() ? "Smoking" : "Non-smoking");
         }
 
-        JPanel datePanel = new JPanel(new GridLayout(4, 2, 5, 5));
+        JPanel datePanel = new JPanel(new GridLayout(5, 2, 5, 5));
         datePanel.add(new JLabel("New Check-In (YYYY-MM-DD):")); datePanel.add(inField);
         datePanel.add(new JLabel("New Check-Out (YYYY-MM-DD):")); datePanel.add(outField);
         datePanel.add(new JLabel("Theme / Floor:")); datePanel.add(floorCombo);
         datePanel.add(new JLabel("Bed Type:")); datePanel.add(bedCombo);
+        datePanel.add(new JLabel("Smoking:")); datePanel.add(smokingCombo);
 
         int dateConfirm = JOptionPane.showConfirmDialog(this, datePanel, "Step 1: Choose Dates & Room Type", JOptionPane.OK_CANCEL_OPTION);
         if (dateConfirm != JOptionPane.OK_OPTION) return;
@@ -250,11 +255,21 @@ public class GuestReservationsUI extends JPanel {
             Domain.Rooms.RoomType.FloorType prefFloor = (Domain.Rooms.RoomType.FloorType) floorCombo.getSelectedItem();
             Domain.Rooms.RoomType.BedType prefBed = (Domain.Rooms.RoomType.BedType) bedCombo.getSelectedItem();
 
+            Boolean isSmoking = null; // Default to "Any"
+            String smokingSelection = (String) smokingCombo.getSelectedItem();
+            if ("Smoking".equals(smokingSelection)) {
+                isSmoking = true;
+            } else if ("Non-smoking".equals(smokingSelection)) {
+                isSmoking = false;
+            }
+
             // STEP 2: Fetch Available Rooms and filter by selected type
             List<Room> allAvailable = reservationController.getAvailableRoomsForModification(newDates, r.getConfirmationNumber());
             List<Room> filteredRooms = new ArrayList<>();
             for (Room room : allAvailable) {
-                if (room.getRoomType().getFloorType() == prefFloor && room.getRoomType().getBedType() == prefBed) {
+                boolean smokingMatch = (isSmoking == null || room.isSmoking() == isSmoking);
+
+                if (room.getRoomType().getFloorType() == prefFloor && room.getRoomType().getBedType() == prefBed && smokingMatch) {
                     filteredRooms.add(room);
                 }
             }
@@ -267,7 +282,8 @@ public class GuestReservationsUI extends JPanel {
             // STEP 3: Select Room
             JComboBox<String> roomCombo = new JComboBox<>();
             for (Room room : filteredRooms) {
-                roomCombo.addItem("Room " + room.getRoomNumber() + " ($" + String.format("%.2f", room.getMaxDailyRate()) + "/night)");
+                String smokeStr = room.isSmoking() ? "Smoking" : "Non-smoking";
+                roomCombo.addItem("Room " + room.getRoomNumber() + " [" + smokeStr + "] ($" + String.format("%.2f", room.getMaxDailyRate()) + "/night)");
             }
 
             JPanel roomPanel = new JPanel(new GridLayout(2, 1, 5, 5));

@@ -68,19 +68,6 @@ public class Driver {
             userSession.logout();
             ui.buildAndShowUI();
         });
-
-
-        /*RoomCatalog rooms = new RoomCatalog();
-        RoomService service = new RoomService(rooms);
-        AddRoomUI ui = new AddRoomUI(service);
-
-        JFrame frame = new JFrame("Test Add Room");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(ui);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);*/
-
     }
 
 }

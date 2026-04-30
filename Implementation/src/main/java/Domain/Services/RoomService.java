@@ -57,9 +57,10 @@ public class RoomService {
         return rooms;
     }
 
-    public List<Room> searchRooms(RoomType roomType, int numGuests) {
+    public List<Room> searchRooms(RoomType roomType, Boolean smoking) {
         return rooms.stream()
                 .filter(r -> r.getRoomType().equals(roomType))
+                .filter(r -> smoking == null || r.isSmoking() == smoking)
                 .toList();
     }
 
