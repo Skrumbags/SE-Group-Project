@@ -63,5 +63,9 @@ public class ShoppingController {
     public CombinedBill combinedBillForGuest(long guestUserId) {
         return shoppingService.buildCombinedBillForClerk(userSession, reservationService, guestUserId);
     }
+
+    public CombinedBill combinedBillForReservation(String confirmationNumber) {
+        return shoppingService.buildCombinedBillForReservation(userSession, reservationService, confirmationNumber);
+    }
 }
 

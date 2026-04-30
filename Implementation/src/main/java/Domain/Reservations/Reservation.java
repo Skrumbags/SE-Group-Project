@@ -149,4 +149,9 @@ public class Reservation {
         this.totalCost = newBaseCost + oldFee + penalty;
         this.createdDate = modificationDate;
     }
+
+    public boolean isCheckedOutOrExpired() {
+        // If it's inactive and today is exactly on or after the check-out date
+        return !isActive() && !java.time.LocalDate.now().isBefore(getDateRange().getCheckOutDate());
+    }
 }

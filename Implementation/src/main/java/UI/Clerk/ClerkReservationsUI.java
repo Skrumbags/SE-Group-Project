@@ -200,6 +200,10 @@ public class ClerkReservationsUI extends JPanel {
         listModel.clear();
 
         for (Reservation r : allRows) {
+            if (r.isCheckedOutOrExpired()) {
+                continue;
+            }
+
             String conf = r.getConfirmationNumber() == null ? "" : r.getConfirmationNumber();
             String guest = r.getGuestName() == null ? "" : r.getGuestName();
             String hay = (conf + " " + guest).toLowerCase();
@@ -417,7 +421,7 @@ public class ClerkReservationsUI extends JPanel {
             }
             Window owner = SwingUtilities.getWindowAncestor(this);
             JDialog dlg = new JDialog(owner, "Guest bill", Dialog.ModalityType.APPLICATION_MODAL);
-            CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, r.getGuestUserId());
+            CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, r.getGuestUserId(), null);
             bill.refresh();
             dlg.setContentPane(bill);
             dlg.pack();

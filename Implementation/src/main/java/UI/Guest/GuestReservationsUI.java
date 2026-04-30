@@ -71,11 +71,14 @@ public class GuestReservationsUI extends JPanel {
     }
 
     public void refreshList() {
-        reservationList.clearSelection(); // FIX: Clears visual selection to prevent bugs when updating
+        reservationList.clearSelection();
         rowCache.clear();
         rowCache.addAll(reservationController.getMyReservations());
         listModel.clear();
         for (Reservation r : rowCache) {
+            if (r.isCheckedOutOrExpired()) {
+                continue;
+            }
             listModel.addElement(r.getConfirmationNumber() + " - " + r.getDateRange().getCheckInDate() + " to " + r.getDateRange().getCheckOutDate());
         }
         detailsArea.setText("");

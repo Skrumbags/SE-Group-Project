@@ -159,9 +159,6 @@ public class RoomAvailabilityPanel extends JPanel {
             } catch (IllegalArgumentException ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(),
                         "Invalid Dates", JOptionPane.ERROR_MESSAGE);
-            } catch (RuntimeException ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(),
-                        "Invalid Dates", JOptionPane.ERROR_MESSAGE);
             }
         });
     }

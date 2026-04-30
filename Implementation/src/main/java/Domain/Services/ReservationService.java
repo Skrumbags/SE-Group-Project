@@ -143,6 +143,10 @@ public class ReservationService {
                                            String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInGuest();
 
+        if (dateRange.getCheckInDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past.");
+        }
+
         String err = BookingValidation.validateGuestName(guestName);
         if (err != null) {
             throw new IllegalArgumentException(err);
@@ -212,6 +216,10 @@ public class ReservationService {
                                                    int roomNumber, String guestName,
                                                    String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInClerk();
+
+        if (dateRange.getCheckInDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past.");
+        }
 
         String err = BookingValidation.validateGuestName(guestName);
         if (err != null) {
@@ -309,6 +317,10 @@ public class ReservationService {
         }
         if (existingRow.isEmpty()) {
             throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
+        }
+        if (!existingRow.get().getDateRange().getCheckInDate().equals(newRange.getCheckInDate()) &&
+                newRange.getCheckInDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("New check-in date cannot be in the past.");
         }
 
         String cardNumber;

@@ -135,6 +135,10 @@ public class ClerkCheckInOutUI extends JPanel {
         String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
         resultsModel.clear();
         for (Reservation r : cache) {
+            if (r.isCheckedOutOrExpired()) {
+                continue;
+            }
+
             String conf = r.getConfirmationNumber() == null ? "" : r.getConfirmationNumber();
             String guest = r.getGuestName() == null ? "" : r.getGuestName();
             String hay = (conf + " " + guest).toLowerCase();
@@ -289,8 +293,12 @@ public class ClerkCheckInOutUI extends JPanel {
                     JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+
         JDialog dlg = new JDialog(owner, "Guest combined bill", Dialog.ModalityType.APPLICATION_MODAL);
-        CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, guestUserId);
+
+        // Pass confirmationNumber here instead of guestUserId
+        CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, null, confirmationNumber);
+
         bill.refresh();
         dlg.setContentPane(bill);
         dlg.pack();

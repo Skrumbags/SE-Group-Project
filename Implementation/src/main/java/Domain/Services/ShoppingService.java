@@ -200,5 +200,35 @@ public class ShoppingService {
     private static double roundMoney(double v) {
         return Math.round(v * 100.0) / 100.0;
     }
+
+    public CombinedBill buildCombinedBillForReservation(UserSession session, ReservationService reservationService, String confirmationNumber) {
+        session.requireLoggedInClerk();
+
+        Reservation res = reservationService.findReservation(confirmationNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+
+        long guestId = res.getGuestUserId() != null ? res.getGuestUserId() : 0;
+        List<Reservation> reservationsForBill = List.of(res);
+
+        List<Purchase> purchasesForBill;
+        try {
+            List<Purchase> allPurchases = storeDb.listPurchasesForGuest(guestId);
+            // Filter to only purchases made under this specific confirmation number
+            purchasesForBill = allPurchases.stream()
+                    .filter(p -> confirmationNumber.equals(p.getReservationConfirmationOrNull()))
+                    .toList();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load purchases", e);
+        }
+
+        double staySubtotal = roundMoney(res.getTotalCost());
+        double roomTax = roundMoney(staySubtotal * taxRate);
+        double stayTotal = roundMoney(staySubtotal + roomTax);
+        double shoppingSubtotal = roundMoney(purchasesForBill.stream().mapToDouble(Purchase::getSubtotal).sum());
+        double combinedTotal = roundMoney(stayTotal + shoppingSubtotal);
+
+        return new CombinedBill(guestId, reservationsForBill, purchasesForBill,
+                staySubtotal, roomTax, stayTotal, shoppingSubtotal, combinedTotal);
+    }
 }
 
