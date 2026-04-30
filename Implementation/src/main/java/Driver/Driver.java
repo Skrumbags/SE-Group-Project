@@ -60,6 +60,9 @@ public class Driver {
         ShoppingController shoppingController =
                 new ShoppingController(shoppingService, resService, userSession);
 
+        userService.addAdmin(2, "admin", "admin123", "Admin");
+        userService.addClerk(3, "clerk", "clerk123", "Clerk");
+
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
             userSession.logout();
