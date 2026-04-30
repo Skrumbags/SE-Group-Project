@@ -42,7 +42,8 @@ public class ClerkUI extends JPanel {
                    Runnable onReservations,
                    Runnable onEditProfile,
                    ReservationController reservationController,
-                   Consumer<String> onOpenCheckedInReservation) {
+                   Consumer<String> onOpenCheckedInReservation,
+                   Runnable onModStatus) {
         this.reservationController = reservationController;
         this.onOpenCheckedInReservation = onOpenCheckedInReservation;
 
@@ -116,7 +117,8 @@ public class ClerkUI extends JPanel {
 
         add(overview, BorderLayout.CENTER);
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
+        //JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
+        JPanel actions = new JPanel(new GridLayout(2, 3, 12, 10));
         Font actionFont = new Font("SansSerif", Font.PLAIN, 14);
         JButton addRoom = styleActionButton(new JButton("Add room"), actionFont);
         addRoom.addActionListener(e -> onAddRoom.run());
@@ -129,11 +131,15 @@ public class ClerkUI extends JPanel {
         reservations.addActionListener(e -> onReservations.run());
         JButton editProfile = styleActionButton(new JButton("Edit profile"), actionFont);
         editProfile.addActionListener(e -> onEditProfile.run());
+        JButton monitorRoomStatus  = styleActionButton(new JButton("Monitor room status"), actionFont);
+        monitorRoomStatus.addActionListener(e -> onModStatus.run());
+
         actions.add(addRoom);
         actions.add(modifyRoom);
         actions.add(checkInOut);
         actions.add(reservations);
         actions.add(editProfile);
+        actions.add(monitorRoomStatus);
         add(actions, BorderLayout.SOUTH);
 
         checkedInSearchField.getDocument().addDocumentListener(new DocumentListener() {

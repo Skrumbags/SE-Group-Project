@@ -2,11 +2,7 @@ package UI.Other;
 
 import UI.Admin.AdminUI;
 import UI.Admin.AddCA_UI;
-import UI.Clerk.AddRoomUI;
-import UI.Clerk.ClerkCheckInOutUI;
-import UI.Clerk.ClerkReservationsUI;
-import UI.Clerk.ClerkUI;
-import UI.Clerk.ModifyRoomUI;
+import UI.Clerk.*;
 import UI.Shopping.CartUI;
 import UI.Shopping.CombinedBillUI;
 import UI.Shopping.ProductCatalogUI;
@@ -242,6 +238,22 @@ public class MasterUI {
                     clerkReservationsPanel.prepareShow();
                     clerkReservationsPanel.selectReservationByConfirmation(confirmationNumber);
                     clerkLayout.show(clerkShell, "CLERK_RES");
+                },
+                () -> {
+                    if (!(userSession.getCurrentUser() instanceof Clerk)) {
+                        JOptionPane.showMessageDialog(frame,
+                                "Only clerks can monitor rooms.",
+                                "Monitor rooms",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    JDialog dlg = new JDialog(frame, "Monitor Room Status", true);
+                    ClerkMonitorRoomStatus ui = new ClerkMonitorRoomStatus(reservationController, dlg::dispose);
+                    dlg.setContentPane(ui);
+                    dlg.pack();
+                    dlg.setSize(800, 500);
+                    dlg.setLocationRelativeTo(frame);
+                    dlg.setVisible(true);
                 }
         );
 
