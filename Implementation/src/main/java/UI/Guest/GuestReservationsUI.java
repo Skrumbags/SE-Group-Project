@@ -81,6 +81,23 @@ public class GuestReservationsUI extends JPanel {
         detailsArea.setText("");
     }
 
+    /**
+     * Refreshes the list and selects the reservation with this confirmation (e.g. from guest home preview).
+     */
+    public void selectReservationByConfirmation(String confirmationNumber) {
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            return;
+        }
+        refreshList();
+        for (int i = 0; i < rowCache.size(); i++) {
+            if (confirmationNumber.equals(rowCache.get(i).getConfirmationNumber())) {
+                reservationList.setSelectedIndex(i);
+                reservationList.ensureIndexIsVisible(i);
+                return;
+            }
+        }
+    }
+
     private void fillFromSelection() {
         int idx = reservationList.getSelectedIndex();
         if (idx < 0) return;

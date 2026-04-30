@@ -253,6 +253,7 @@ public class MasterUI {
             if (u != null) {
                 GuestUI guestHome = new GuestUI(
                         u,
+                        reservationController,
                         () -> {
                             reservePanel.refresh();
                             guestLayout.show(guestShell, "RESERVE");
@@ -276,6 +277,10 @@ public class MasterUI {
                         },
                         () -> {
                             manageResPanel.refreshList();
+                            guestLayout.show(guestShell, "MANAGE_RES");
+                        },
+                        confirmationNumber -> {
+                            manageResPanel.selectReservationByConfirmation(confirmationNumber);
                             guestLayout.show(guestShell, "MANAGE_RES");
                         }
                 );
