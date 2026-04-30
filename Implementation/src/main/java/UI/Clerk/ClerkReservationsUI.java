@@ -275,8 +275,8 @@ public class ClerkReservationsUI extends JPanel {
         if (roomCombo.getItemCount() > 0) {
             roomCombo.setSelectedIndex(0);
         }
-        resetDatePlaceholder(checkInField);
-        resetDatePlaceholder(checkOutField);
+        setDateField(checkInField, LocalDate.now());
+        setDateField(checkOutField, LocalDate.now().plusDays(1));
         guestNameField.setText("");
         creditCardField.setText("");
         guestUsernameField.setText("");

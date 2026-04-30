@@ -24,6 +24,9 @@ public class AddRoomUI extends JPanel {
 
     public AddRoomUI(RoomService roomService) {
         this.roomService = roomService;
+
+        availabilityCheck.setSelected(true);
+
         setLayout(new GridLayout(7, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -60,6 +63,11 @@ public class AddRoomUI extends JPanel {
 
                 if (success) {
                     JOptionPane.showMessageDialog(this, "Room " + roomNumber + " added!");
+
+                    roomNumberField.setText("");
+                    dailyRateField.setText("");
+                    smokingCheck.setSelected(false);
+                    availabilityCheck.setSelected(true);
                 } else {
                     JOptionPane.showMessageDialog(this, "Room " + roomNumber + " already exists!");
                 }

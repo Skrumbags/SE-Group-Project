@@ -128,7 +128,7 @@ public class MasterUI {
                 return;
             }
             JDialog dlg = new JDialog(frame, "Modify room", true);
-            ModifyRoomUI form = new ModifyRoomUI(searchController.getRoomService());
+            ModifyRoomUI form = new ModifyRoomUI(searchController.getRoomService(), reservationController);
             form.setBackAction(e -> dlg.dispose(), "Close");
             dlg.setContentPane(form);
             dlg.pack();
@@ -251,7 +251,7 @@ public class MasterUI {
                     ClerkMonitorRoomStatus ui = new ClerkMonitorRoomStatus(reservationController, dlg::dispose);
                     dlg.setContentPane(ui);
                     dlg.pack();
-                    dlg.setSize(800, 500);
+                    dlg.setSize(1050, 650);
                     dlg.setLocationRelativeTo(frame);
                     dlg.setVisible(true);
                 }
