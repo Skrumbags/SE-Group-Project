@@ -43,7 +43,8 @@ public class ClerkUI extends JPanel {
                    Runnable onEditProfile,
                    ReservationController reservationController,
                    Consumer<String> onOpenCheckedInReservation,
-                   Runnable onModStatus) {
+                   Runnable onModStatus,
+                   Runnable onManageStoreProducts) {
         this.reservationController = reservationController;
         this.onOpenCheckedInReservation = onOpenCheckedInReservation;
 
@@ -118,7 +119,7 @@ public class ClerkUI extends JPanel {
         add(overview, BorderLayout.CENTER);
 
         //JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 10));
-        JPanel actions = new JPanel(new GridLayout(2, 3, 12, 10));
+        JPanel actions = new JPanel(new GridLayout(3, 3, 12, 10));
         Font actionFont = new Font("SansSerif", Font.PLAIN, 14);
         JButton addRoom = styleActionButton(new JButton("Add room"), actionFont);
         addRoom.addActionListener(e -> onAddRoom.run());
@@ -133,6 +134,9 @@ public class ClerkUI extends JPanel {
         editProfile.addActionListener(e -> onEditProfile.run());
         JButton monitorRoomStatus  = styleActionButton(new JButton("Monitor room status"), actionFont);
         monitorRoomStatus.addActionListener(e -> onModStatus.run());
+        JButton manageStore = styleActionButton(new JButton("Store products"), actionFont);
+        manageStore.setToolTipText("Add product types, set price, and set stock quantity");
+        manageStore.addActionListener(e -> onManageStoreProducts.run());
 
         actions.add(addRoom);
         actions.add(modifyRoom);
@@ -140,6 +144,9 @@ public class ClerkUI extends JPanel {
         actions.add(reservations);
         actions.add(editProfile);
         actions.add(monitorRoomStatus);
+        actions.add(manageStore);
+        actions.add(new JPanel());
+        actions.add(new JPanel());
         add(actions, BorderLayout.SOUTH);
 
         checkedInSearchField.getDocument().addDocumentListener(new DocumentListener() {

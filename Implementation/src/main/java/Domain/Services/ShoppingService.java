@@ -40,6 +40,65 @@ public class ShoppingService {
         }
     }
 
+    /** Clerk: full catalog including inactive rows (for price/stock / new SKU management). */
+    public List<Item> listAllProductsForClerk(UserSession session) {
+        session.requireLoggedInClerk();
+        try {
+            return storeDb.listAllProducts();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load products", e);
+        }
+    }
+
+    /**
+     * Clerk: add a new sellable product (active in guest catalog).
+     *
+     * @throws IllegalArgumentException duplicate SKU or invalid fields
+     */
+    public long clerkCreateProduct(UserSession session,
+                                   String sku,
+                                   String name,
+                                   String description,
+                                   double unitPrice,
+                                   int stockQty) {
+        session.requireLoggedInClerk();
+        if (sku == null || sku.isBlank()) throw new IllegalArgumentException("SKU is required.");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name is required.");
+        if (unitPrice < 0) throw new IllegalArgumentException("Unit price cannot be negative.");
+        if (stockQty < 0) throw new IllegalArgumentException("Stock cannot be negative.");
+        try {
+            return storeDb.createProduct(sku.trim(), name.trim(), description, unitPrice, stockQty, true);
+        } catch (SQLException e) {
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            if (msg.contains("UNIQUE") && msg.contains("sku")) {
+                throw new IllegalArgumentException("A product with that SKU already exists.", e);
+            }
+            throw new RuntimeException("Failed to create product", e);
+        }
+    }
+
+    public void clerkUpdateProductUnitPrice(UserSession session, long productId, double unitPrice) {
+        session.requireLoggedInClerk();
+        if (productId <= 0) throw new IllegalArgumentException("A valid product id is required.");
+        try {
+            int n = storeDb.updateProductUnitPrice(productId, unitPrice);
+            if (n == 0) throw new IllegalArgumentException("Unknown product id: " + productId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update price", e);
+        }
+    }
+
+    public void clerkUpdateProductStockQty(UserSession session, long productId, int stockQty) {
+        session.requireLoggedInClerk();
+        if (productId <= 0) throw new IllegalArgumentException("A valid product id is required.");
+        try {
+            int n = storeDb.updateProductStockQty(productId, stockQty);
+            if (n == 0) throw new IllegalArgumentException("Unknown product id: " + productId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update stock", e);
+        }
+    }
+
     public Cart getCart(UserSession session) {
         Guest g = session.requireLoggedInGuest();
         Long id = g.getDatabaseId();

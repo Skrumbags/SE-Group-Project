@@ -254,6 +254,22 @@ public class MasterUI {
                     dlg.setSize(1050, 650);
                     dlg.setLocationRelativeTo(frame);
                     dlg.setVisible(true);
+                },
+                () -> {
+                    if (!(userSession.getCurrentUser() instanceof Clerk)) {
+                        JOptionPane.showMessageDialog(frame,
+                                "Only clerks can manage store products.",
+                                "Store products",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    JDialog dlg = new JDialog(frame, "Store products", true);
+                    ClerkManageProductsUI panel = new ClerkManageProductsUI(shoppingController, dlg::dispose);
+                    dlg.setContentPane(panel);
+                    dlg.pack();
+                    dlg.setSize(720, 620);
+                    dlg.setLocationRelativeTo(frame);
+                    dlg.setVisible(true);
                 }
         );
 
