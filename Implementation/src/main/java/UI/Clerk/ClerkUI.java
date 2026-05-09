@@ -65,7 +65,7 @@ public class ClerkUI extends JPanel {
         JPanel overview = new JPanel(new BorderLayout(8, 8));
         overview.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                "Guests checked in today (" + LocalDate.now() + ")",
+                "Active reservations (checked in)",
                 TitledBorder.LEFT,
                 TitledBorder.TOP,
                 new Font("SansSerif", Font.BOLD, 13)));

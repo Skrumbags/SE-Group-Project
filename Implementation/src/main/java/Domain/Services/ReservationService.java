@@ -107,21 +107,15 @@ public class ReservationService {
     }
 
     /**
-     * Clerk dashboard: reservations marked checked in whose stay includes {@code onDate}
-     * ({@code checkIn <= onDate < checkOut}).
+     * Clerk dashboard: all reservations currently marked checked in ({@code is_active}).
+     * {@code onDate} is unused; kept for a stable call site from {@code ReservationController}.
      */
     public List<Reservation> listCheckedInStaysOnDate(UserSession session, LocalDate onDate) {
         session.requireLoggedInClerk();
         return getReservations().stream()
                 .filter(Reservation::isActive)
-                .filter(r -> stayIncludesNight(r, onDate))
                 .sorted(Comparator.comparing(Reservation::getGuestName, Comparator.nullsFirst(String::compareToIgnoreCase)))
                 .toList();
-    }
-
-    private static boolean stayIncludesNight(Reservation r, LocalDate night) {
-        DateRange dr = r.getDateRange();
-        return !night.isBefore(dr.getCheckInDate()) && night.isBefore(dr.getCheckOutDate());
     }
 
     public Optional<Reservation> findReservation(String confirmationNumber) {
