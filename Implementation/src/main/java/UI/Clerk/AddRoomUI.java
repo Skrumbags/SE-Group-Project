@@ -20,9 +20,13 @@ public class AddRoomUI extends JPanel {
     private JComboBox<BedType> bedTypeBox = new JComboBox<>(BedType.values());
     private JCheckBox smokingCheck = new JCheckBox();
     private JButton backButton = new JButton();
+    private JCheckBox availabilityCheck = new JCheckBox();
 
     public AddRoomUI(RoomService roomService) {
         this.roomService = roomService;
+
+        availabilityCheck.setSelected(true);
+
         setLayout(new GridLayout(7, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -31,6 +35,7 @@ public class AddRoomUI extends JPanel {
         add(new JLabel("Bed Type:"));     add(bedTypeBox);
         add(new JLabel("Smoking:"));      add(smokingCheck);
         add(new JLabel("Daily Rate:"));   add(dailyRateField);
+        add(new JLabel("Available:"));  add(availabilityCheck);
 
         JButton addButton = new JButton("Save room to catalog");
         add(backButton);
@@ -53,11 +58,16 @@ public class AddRoomUI extends JPanel {
                 JOptionPane.showMessageDialog(this, "Room number and Daily rate must be >= 0.");
             }
             else {
-                Room newRoom = new Room(roomNumber, smokingCheck.isSelected(), false, dailyRate, roomType);
+                Room newRoom = new Room(roomNumber, smokingCheck.isSelected(), availabilityCheck.isSelected(), dailyRate, roomType);
                 boolean success = roomService.addRoom(newRoom);
 
                 if (success) {
                     JOptionPane.showMessageDialog(this, "Room " + roomNumber + " added!");
+
+                    roomNumberField.setText("");
+                    dailyRateField.setText("");
+                    smokingCheck.setSelected(false);
+                    availabilityCheck.setSelected(true);
                 } else {
                     JOptionPane.showMessageDialog(this, "Room " + roomNumber + " already exists!");
                 }

@@ -16,20 +16,12 @@ import Domain.Services.ShoppingService;
 import Domain.Services.UserService;
 import TechnicalServices.Persistence.SqliteReservationPersistence;
 import TechnicalServices.Persistence.SqliteStorePersistence;
-import UI.MasterUI;
+import UI.Other.MasterUI;
 import Controllers.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.nio.file.Path;
-
-import Controllers.*;
-import Domain.People.*;
-import TechnicalServices.Persistence.SchemaInstaller;
-
-import javax.swing.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
 
 
 public class Driver {
@@ -68,24 +60,14 @@ public class Driver {
         ShoppingController shoppingController =
                 new ShoppingController(shoppingService, resService, userSession);
 
+        userService.addAdmin(2, "admin", "admin123", "Admin");
+        userService.addClerk(3, "clerk", "clerk123", "Clerk");
+
         MasterUI ui = new MasterUI(userSession, reservationController, searchController, userController, shoppingController);
         SwingUtilities.invokeLater(() -> {
             userSession.logout();
             ui.buildAndShowUI();
         });
-
-
-        /*RoomCatalog rooms = new RoomCatalog();
-        RoomService service = new RoomService(rooms);
-        AddRoomUI ui = new AddRoomUI(service);
-
-        JFrame frame = new JFrame("Test Add Room");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(ui);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);*/
-
     }
 
 }

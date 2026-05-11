@@ -14,7 +14,8 @@ public class CombinedBillUI extends JPanel {
     private final ShoppingController shoppingController;
     private final Runnable onBack;
     /** When non-null, bill is for this guest (clerk viewing); otherwise the logged-in guest. */
-    private final Long fixedGuestUserId;
+    private final Long targetGuestUserId;
+    private final String targetConfirmationNumber;
 
     private final JLabel totalsLabel = new JLabel(" ");
 
@@ -41,25 +42,33 @@ public class CombinedBillUI extends JPanel {
     private final JTable purchasesTable = new JTable(purchasesModel);
 
     public CombinedBillUI(ShoppingController shoppingController, Runnable onBack) {
-        this(shoppingController, onBack, null);
+        this(shoppingController, onBack, null, null);
     }
 
     /**
-     * @param fixedGuestUserId when set, combined bill is loaded for this guest id (clerk context);
+     * @param targetConfirmationNumber when set, combined bill is loaded for this reservation (clerk context);
      *                         when {@code null}, uses the logged-in guest.
      */
-    public CombinedBillUI(ShoppingController shoppingController, Runnable onBack, Long fixedGuestUserId) {
+    public CombinedBillUI(ShoppingController shoppingController, Runnable onBack, Long targetGuestUserId, String targetConfirmationNumber) {
         this.shoppingController = shoppingController;
         this.onBack = onBack;
-        this.fixedGuestUserId = fixedGuestUserId;
+        this.targetGuestUserId = targetGuestUserId;
+        this.targetConfirmationNumber = targetConfirmationNumber;
 
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 12, 12, 12));
 
-        JLabel title = new JLabel(fixedGuestUserId == null ? "Combined Bill" : "Guest combined bill (clerk)");
+        String titleStr = "Combined Bill";
+        if (targetConfirmationNumber != null) {
+            titleStr = "Reservation Bill: " + targetConfirmationNumber;
+        } else if (targetGuestUserId != null) {
+            titleStr = "Guest combined bill (clerk)";
+        }
+
+        JLabel title = new JLabel(titleStr);
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
 
-        JButton backBtn = new JButton(fixedGuestUserId == null ? "Home" : "Close");
+        JButton backBtn = new JButton((targetGuestUserId == null && targetConfirmationNumber == null) ? "Home" : "Close");
         backBtn.addActionListener(e -> onBack.run());
 
         JPanel north = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
@@ -67,17 +76,23 @@ public class CombinedBillUI extends JPanel {
         north.add(title);
         add(north, BorderLayout.NORTH);
 
-        JPanel center = new JPanel(new GridLayout(2, 1, 8, 8));
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
 
         JPanel resPanel = new JPanel(new BorderLayout(6, 6));
         resPanel.add(new JLabel("Reservations (room charges before tax)"), BorderLayout.NORTH);
-        resPanel.add(new JScrollPane(reservationsTable), BorderLayout.CENTER);
+        JScrollPane resScroll = new JScrollPane(reservationsTable);
+        resScroll.setPreferredSize(new Dimension(600, 160));
+        resPanel.add(resScroll, BorderLayout.CENTER);
 
         JPanel purPanel = new JPanel(new BorderLayout(6, 6));
         purPanel.add(new JLabel("Purchases (subtotal; store tax not included in combined total)"), BorderLayout.NORTH);
-        purPanel.add(new JScrollPane(purchasesTable), BorderLayout.CENTER);
+        JScrollPane purScroll = new JScrollPane(purchasesTable);
+        purScroll.setPreferredSize(new Dimension(600, 160));
+        purPanel.add(purScroll, BorderLayout.CENTER);
 
         center.add(resPanel);
+        center.add(Box.createVerticalStrut(8));
         center.add(purPanel);
         add(center, BorderLayout.CENTER);
 
@@ -86,9 +101,16 @@ public class CombinedBillUI extends JPanel {
     }
 
     public void refresh() {
-        CombinedBill bill = fixedGuestUserId == null
-                ? shoppingController.combinedBill()
-                : shoppingController.combinedBillForGuest(fixedGuestUserId);
+        CombinedBill bill;
+
+        // Route to the correct Domain logic based on what parameters were passed
+        if (targetConfirmationNumber != null) {
+            bill = shoppingController.combinedBillForReservation(targetConfirmationNumber);
+        } else if (targetGuestUserId != null) {
+            bill = shoppingController.combinedBillForGuest(targetGuestUserId);
+        } else {
+            bill = shoppingController.combinedBill();
+        }
 
         reservationsModel.setRowCount(0);
         for (Reservation r : bill.getReservations()) {

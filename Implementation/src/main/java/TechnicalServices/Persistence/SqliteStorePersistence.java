@@ -101,6 +101,46 @@ public class SqliteStorePersistence {
         return list;
     }
 
+    /** All products (including inactive), for clerk inventory management. */
+    public List<Item> listAllProducts() throws SQLException {
+        String sql = """
+                SELECT id, sku, name, description, unit_price, stock_qty, active
+                FROM Products
+                ORDER BY name
+                """;
+        List<Item> list = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(mapItemRow(rs));
+            }
+        }
+        return list;
+    }
+
+    public int updateProductUnitPrice(long productId, double unitPrice) throws SQLException {
+        if (unitPrice < 0) throw new IllegalArgumentException("Unit price cannot be negative.");
+        String sql = "UPDATE Products SET unit_price = ? WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDouble(1, unitPrice);
+            ps.setLong(2, productId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int updateProductStockQty(long productId, int stockQty) throws SQLException {
+        if (stockQty < 0) throw new IllegalArgumentException("Stock cannot be negative.");
+        String sql = "UPDATE Products SET stock_qty = ? WHERE id = ?";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, stockQty);
+            ps.setLong(2, productId);
+            return ps.executeUpdate();
+        }
+    }
+
     public Optional<Item> findProductById(long id) throws SQLException {
         String sql = """
                 SELECT id, sku, name, description, unit_price, stock_qty, active

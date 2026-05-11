@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -127,6 +128,18 @@ public class ReservationService {
         return List.copyOf(reservationList);
     }
 
+    /**
+     * Clerk dashboard: all reservations currently marked checked in ({@code is_active}).
+     * {@code onDate} is unused; kept for a stable call site from {@code ReservationController}.
+     */
+    public List<Reservation> listCheckedInStaysOnDate(UserSession session, LocalDate onDate) {
+        session.requireLoggedInClerk();
+        return getReservations().stream()
+                .filter(Reservation::isActive)
+                .sorted(Comparator.comparing(Reservation::getGuestName, Comparator.nullsFirst(String::compareToIgnoreCase)))
+                .toList();
+    }
+
     public Optional<Reservation> findReservation(String confirmationNumber) {
         try {
             return sqlite.findByConfirmationNumber(confirmationNumber);
@@ -145,6 +158,10 @@ public class ReservationService {
                                            int roomNumber, String guestName,
                                            String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInGuest();
+
+        if (dateRange.getCheckInDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past.");
+        }
 
         String err = BookingValidation.validateGuestName(guestName);
         if (err != null) {
@@ -215,6 +232,10 @@ public class ReservationService {
                                                    int roomNumber, String guestName,
                                                    String creditCardNumber, DateRange dateRange) {
         userSession.requireLoggedInClerk();
+
+        if (dateRange.getCheckInDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past.");
+        }
 
         String err = BookingValidation.validateGuestName(guestName);
         if (err != null) {
@@ -313,6 +334,10 @@ public class ReservationService {
         if (existingRow.isEmpty()) {
             throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
         }
+        if (!existingRow.get().getDateRange().getCheckInDate().equals(newRange.getCheckInDate()) &&
+                newRange.getCheckInDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("New check-in date cannot be in the past.");
+        }
 
         String cardNumber;
         if (creditCardNumber == null || creditCardNumber.isBlank()) {
@@ -351,7 +376,8 @@ public class ReservationService {
                     guestName.trim(),
                     cardNumber,
                     totalCost,
-                    guestUserId
+                    guestUserId,
+                    existingRow.get().getCreatedDate() // Pass the existing created date
             );
             loadList();
         } catch (SQLException e) {
@@ -372,12 +398,6 @@ public class ReservationService {
             if (r.getGuestUserId() == null) {
                 throw new IllegalArgumentException("Reservation has no linked guest account; cannot check in.");
             }
-            LocalDate today = LocalDate.now();
-            if (today.isBefore(r.getDateRange().getCheckInDate())) {
-                throw new IllegalArgumentException(
-                        "Check-in is only allowed on or after the reservation check-in date ("
-                                + r.getDateRange().getCheckInDate() + ").");
-            }
             sqlite.setReservationActive(confirmationNumber, true);
             loadList();
         } catch (SQLException e) {
@@ -392,8 +412,10 @@ public class ReservationService {
             throw new IllegalArgumentException("Confirmation number is required.");
         }
         try {
-            if (sqlite.findByConfirmationNumber(confirmationNumber).isEmpty()) {
-                throw new IllegalArgumentException("Reservation not found: " + confirmationNumber);
+            Reservation row = sqlite.findByConfirmationNumber(confirmationNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+            if (!row.isActive()) {
+                throw new IllegalStateException("This reservation is not active and cannot be checked out.");
             }
             sqlite.setReservationActive(confirmationNumber, false);
             loadList();
@@ -407,7 +429,7 @@ public class ReservationService {
         reservationList.addAll(this.sqlite.findAll());
     }
 
-    public String cancelReservation(UserSession session, String confirmationNumber) {
+    public String cancelReservation(UserSession session, String confirmationNumber, List<Room> allRooms) {
         Reservation r = findReservation(confirmationNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
 
@@ -417,12 +439,17 @@ public class ReservationService {
             }
         }
 
+        // HYDRATE the room to ensure we have the correct daily rate for the penalty logic
+        allRooms.stream()
+                .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
+                .findFirst()
+                .ifPresent(r::setRoom);
+
         Cancellation cancellation = new Cancellation(r, LocalDate.now());
         double fee = cancellation.getPenaltyFee();
 
         try {
             sqlite.deleteByConfirmationNumber(confirmationNumber);
-
             this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));
 
         } catch (java.sql.SQLException e) {
@@ -460,7 +487,7 @@ public class ReservationService {
         }
     }
 
-    public String modifyGuestItinerary(UserSession session, String confirmationNumber, Room newRoom, DateRange newDates) {
+    public String modifyGuestItinerary(UserSession session, String confirmationNumber, Room newRoom, DateRange newDates, List<Room> allRooms) {
         Reservation r = null;
         try {
             r = sqlite.findByConfirmationNumber(confirmationNumber)
@@ -469,11 +496,22 @@ public class ReservationService {
             throw new RuntimeException(e);
         }
 
+        int rNumber = r.getRoom().getRoomNumber();
+        allRooms.stream()
+                .filter(room -> room.getRoomNumber() == rNumber)
+                .findFirst()
+                .ifPresent(r::setRoom);
+
         // Enforce authorization
         if (session.getCurrentUser() instanceof Domain.People.Guest) {
             if (!session.getCurrentUser().getDatabaseId().equals(r.getGuestUserId())) {
                 throw new IllegalStateException("You are not authorized to modify this reservation.");
             }
+        }
+
+        // Prevent modification if the reservation starts today or has already started
+        if (!java.time.LocalDate.now().isBefore(r.getDateRange().getCheckInDate())) {
+            throw new IllegalStateException("Cannot modify a reservation that starts today or has already started.");
         }
 
         try {
@@ -485,7 +523,7 @@ public class ReservationService {
 
             double oldFees = r.getExtraFee();
 
-            // Domain expert calculates the new fees
+            // Domain expert calculates the new fees and updates the createdDate natively
             r.modifyItinerary(newRoom, newDates, java.time.LocalDate.now());
 
             // Save changes to database
@@ -497,7 +535,8 @@ public class ReservationService {
                     r.getGuestName(),
                     r.getCardNumber(),
                     r.getTotalCost(),
-                    r.getGuestUserId()
+                    r.getGuestUserId(),
+                    r.getCreatedDate() // Update the created date in the DB
             );
 
             this.reservationList.removeIf(res -> res.getConfirmationNumber().equals(confirmationNumber));

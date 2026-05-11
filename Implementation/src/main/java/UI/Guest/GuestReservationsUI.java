@@ -1,4 +1,4 @@
-package UI.User;
+package UI.Guest;
 
 import Controllers.ReservationController;
 import Domain.People.UserSession;
@@ -71,14 +71,34 @@ public class GuestReservationsUI extends JPanel {
     }
 
     public void refreshList() {
-        reservationList.clearSelection(); // FIX: Clears visual selection to prevent bugs when updating
+        reservationList.clearSelection();
         rowCache.clear();
         rowCache.addAll(reservationController.getMyReservations());
         listModel.clear();
         for (Reservation r : rowCache) {
+            if (r.isCheckedOutOrExpired()) {
+                continue;
+            }
             listModel.addElement(r.getConfirmationNumber() + " - " + r.getDateRange().getCheckInDate() + " to " + r.getDateRange().getCheckOutDate());
         }
         detailsArea.setText("");
+    }
+
+    /**
+     * Refreshes the list and selects the reservation with this confirmation (e.g. from guest home preview).
+     */
+    public void selectReservationByConfirmation(String confirmationNumber) {
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            return;
+        }
+        refreshList();
+        for (int i = 0; i < rowCache.size(); i++) {
+            if (confirmationNumber.equals(rowCache.get(i).getConfirmationNumber())) {
+                reservationList.setSelectedIndex(i);
+                reservationList.ensureIndexIsVisible(i);
+                return;
+            }
+        }
     }
 
     private void fillFromSelection() {
@@ -135,6 +155,12 @@ public class GuestReservationsUI extends JPanel {
         }
         Reservation r = rowCache.get(idx);
 
+        // UI blocking constraint for active/past reservations
+        if (!LocalDate.now().isBefore(r.getDateRange().getCheckInDate())) {
+            JOptionPane.showMessageDialog(this, "Reservations cannot be cancelled on or after the check-in date.", "Cancellation Prohibited", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         double fee = r.peekPenaltyFee(LocalDate.now());
 
         // Front-load the fee warning
@@ -163,7 +189,12 @@ public class GuestReservationsUI extends JPanel {
         }
         Reservation r = rowCache.get(idx);
 
-        // NEW: Front-load the modification fee warning BEFORE asking for dates
+        // UI blocking constraint for active/past reservations
+        if (!LocalDate.now().isBefore(r.getDateRange().getCheckInDate())) {
+            JOptionPane.showMessageDialog(this, "Reservations cannot be modified on or after the check-in date.", "Modification Prohibited", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         double fee = r.peekPenaltyFee(LocalDate.now());
         if (fee > 0) {
             int proceed = JOptionPane.showConfirmDialog(this,
@@ -182,8 +213,15 @@ public class GuestReservationsUI extends JPanel {
         JTextField inField = new JTextField(currentIn, 10);
         JTextField outField = new JTextField(currentOut, 10);
 
-        JComboBox<Domain.Rooms.RoomType.FloorType> floorCombo = new JComboBox<>(Domain.Rooms.RoomType.FloorType.values());
-        JComboBox<Domain.Rooms.RoomType.BedType> bedCombo = new JComboBox<>(Domain.Rooms.RoomType.BedType.values());
+        JComboBox<String> floorCombo = new JComboBox<>();
+        floorCombo.addItem("Any");
+        for (Domain.Rooms.RoomType.FloorType f : Domain.Rooms.RoomType.FloorType.values()) floorCombo.addItem(f.name());
+
+        JComboBox<String> bedCombo = new JComboBox<>();
+        bedCombo.addItem("Any");
+        for (Domain.Rooms.RoomType.BedType b : Domain.Rooms.RoomType.BedType.values()) bedCombo.addItem(b.name());
+
+        JComboBox<String> smokingCombo = new JComboBox<>(new String[]{"Any", "Smoking", "Non-smoking"});
 
         Room fullRoom = reservationController.getRooms().stream()
                 .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
@@ -191,16 +229,20 @@ public class GuestReservationsUI extends JPanel {
                 .orElse(null);
 
         // Set the dropdown defaults
-        if (fullRoom != null && fullRoom.getRoomType() != null) {
-            floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType());
-            bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType());
+        if (fullRoom != null) {
+            if (fullRoom.getRoomType() != null) {
+                floorCombo.setSelectedItem(fullRoom.getRoomType().getFloorType().name());
+                bedCombo.setSelectedItem(fullRoom.getRoomType().getBedType().name());
+            }
+            smokingCombo.setSelectedItem(fullRoom.isSmoking() ? "Smoking" : "Non-smoking");
         }
 
-        JPanel datePanel = new JPanel(new GridLayout(4, 2, 5, 5));
+        JPanel datePanel = new JPanel(new GridLayout(5, 2, 5, 5));
         datePanel.add(new JLabel("New Check-In (YYYY-MM-DD):")); datePanel.add(inField);
         datePanel.add(new JLabel("New Check-Out (YYYY-MM-DD):")); datePanel.add(outField);
         datePanel.add(new JLabel("Theme / Floor:")); datePanel.add(floorCombo);
         datePanel.add(new JLabel("Bed Type:")); datePanel.add(bedCombo);
+        datePanel.add(new JLabel("Smoking:")); datePanel.add(smokingCombo);
 
         int dateConfirm = JOptionPane.showConfirmDialog(this, datePanel, "Step 1: Choose Dates & Room Type", JOptionPane.OK_CANCEL_OPTION);
         if (dateConfirm != JOptionPane.OK_OPTION) return;
@@ -208,16 +250,36 @@ public class GuestReservationsUI extends JPanel {
         try {
             LocalDate in = LocalDate.parse(inField.getText().trim());
             LocalDate out = LocalDate.parse(outField.getText().trim());
+
+            // UI blocking constraint for past dates
+            if (in.isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException("Check-in date cannot be in the past.");
+            }
+
             DateRange newDates = new DateRange(in, out);
 
-            Domain.Rooms.RoomType.FloorType prefFloor = (Domain.Rooms.RoomType.FloorType) floorCombo.getSelectedItem();
-            Domain.Rooms.RoomType.BedType prefBed = (Domain.Rooms.RoomType.BedType) bedCombo.getSelectedItem();
+            String floorSel = (String) floorCombo.getSelectedItem();
+            String bedSel = (String) bedCombo.getSelectedItem();
+            Domain.Rooms.RoomType.FloorType prefFloor = "Any".equals(floorSel) ? null : Domain.Rooms.RoomType.FloorType.valueOf(floorSel);
+            Domain.Rooms.RoomType.BedType prefBed = "Any".equals(bedSel) ? null : Domain.Rooms.RoomType.BedType.valueOf(bedSel);
+
+            Boolean isSmoking = null; // Default to "Any"
+            String smokingSelection = (String) smokingCombo.getSelectedItem();
+            if ("Smoking".equals(smokingSelection)) {
+                isSmoking = true;
+            } else if ("Non-smoking".equals(smokingSelection)) {
+                isSmoking = false;
+            }
 
             // STEP 2: Fetch Available Rooms and filter by selected type
             List<Room> allAvailable = reservationController.getAvailableRoomsForModification(newDates, r.getConfirmationNumber());
             List<Room> filteredRooms = new ArrayList<>();
             for (Room room : allAvailable) {
-                if (room.getRoomType().getFloorType() == prefFloor && room.getRoomType().getBedType() == prefBed) {
+                boolean floorMatch = (prefFloor == null || room.getRoomType().getFloorType() == prefFloor);
+                boolean bedMatch = (prefBed == null || room.getRoomType().getBedType() == prefBed);
+                boolean smokingMatch = (isSmoking == null || room.isSmoking() == isSmoking);
+
+                if (floorMatch && bedMatch && smokingMatch) {
                     filteredRooms.add(room);
                 }
             }
@@ -230,7 +292,8 @@ public class GuestReservationsUI extends JPanel {
             // STEP 3: Select Room
             JComboBox<String> roomCombo = new JComboBox<>();
             for (Room room : filteredRooms) {
-                roomCombo.addItem("Room " + room.getRoomNumber() + " ($" + String.format("%.2f", room.getMaxDailyRate()) + "/night)");
+                String smokeStr = room.isSmoking() ? "Smoking" : "Non-smoking";
+                roomCombo.addItem("Room " + room.getRoomNumber() + " [" + smokeStr + "] ($" + String.format("%.2f", room.getMaxDailyRate()) + "/night)");
             }
 
             JPanel roomPanel = new JPanel(new GridLayout(2, 1, 5, 5));

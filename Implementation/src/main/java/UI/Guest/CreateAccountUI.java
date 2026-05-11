@@ -1,4 +1,4 @@
-package UI.User;
+package UI.Guest;
 
 import Controllers.UserController;
 import Domain.Services.UserService;
@@ -7,7 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
-public class AddUserUI extends JPanel {
+public class CreateAccountUI extends JPanel {
 
     private final UserController userController;
 
@@ -18,7 +18,7 @@ public class AddUserUI extends JPanel {
     private final JTextField emailField     = new JTextField(15);
     private JButton backButton = new JButton();
 
-    public AddUserUI(UserController userController) {
+    public CreateAccountUI(UserController userController) {
         this.userController = userController;
         setLayout(new GridLayout(6, 2, 5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -44,6 +44,49 @@ public class AddUserUI extends JPanel {
         String phone    = phoneField.getText().trim();
         String email    = emailField.getText().trim();
 
+        if (username.isBlank() || password.isBlank() || name.isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    "Username, password, and full name are required.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (username.contains(" ")) {
+            JOptionPane.showMessageDialog(this,
+                    "Username cannot contain spaces.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (password.length() < 4) {
+            JOptionPane.showMessageDialog(this,
+                    "Password must be at least 4 characters.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (!phone.isBlank() && !phone.matches("[0-9+()\\-\\s]{7,}")) {
+            JOptionPane.showMessageDialog(this,
+                    "Phone number looks invalid.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (!email.isBlank() && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            JOptionPane.showMessageDialog(this,
+                    "Email address looks invalid.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (!email.isBlank() && userController.emailExists(email)) {
+            JOptionPane.showMessageDialog(this,
+                    "Email \"" + email + "\" is already associated with an existing account.",
+                    "Duplicate Email", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (userController.exists(username)) {
+            JOptionPane.showMessageDialog(this,
+                    "Username \"" + username + "\" is already taken. Please choose another.",
+                    "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         UserService.Result result = userController.addGuest(username, password, name, phone, email);
 
         switch (result) {
@@ -54,6 +97,10 @@ public class AddUserUI extends JPanel {
                     JOptionPane.showMessageDialog(this,
                             "Username \"" + username + "\" is already taken. Please choose another.",
                             "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            case DUPLICATE_EMAIL ->
+                    JOptionPane.showMessageDialog(this,
+                            "Email \"" + email + "\" is already associated with an existing account.",
+                            "Duplicate Email", JOptionPane.WARNING_MESSAGE);
             case INVALID_INPUT ->
                     JOptionPane.showMessageDialog(this,
                             "Username, password, and full name are required.",
@@ -65,6 +112,14 @@ public class AddUserUI extends JPanel {
         backButton.addActionListener(goBack);
         backButton.setLabel(backMessage);
         backButton.setVisible(true);
+    }
+
+    public void refresh() {
+        usernameField.setText("");
+        passwordField.setText("");
+        nameField.setText("");
+        phoneField.setText("");
+        emailField.setText("");
     }
 }
 

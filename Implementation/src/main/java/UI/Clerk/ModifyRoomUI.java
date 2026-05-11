@@ -1,5 +1,6 @@
 package UI.Clerk;
 
+import Controllers.ReservationController;
 import Domain.Rooms.Room;
 import Domain.Rooms.RoomType;
 import Domain.Rooms.RoomType.BedType;
@@ -11,15 +12,14 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Clerk UI for modifying existing room information.
- */
 public class ModifyRoomUI extends JPanel {
 
     private final RoomService roomService;
+    private final ReservationController reservationController;
 
     private final JTextField searchField = new JTextField(14);
     private final DefaultListModel<String> resultsModel = new DefaultListModel<>();
@@ -30,12 +30,14 @@ public class ModifyRoomUI extends JPanel {
     private final JComboBox<FloorType> floorTypeBox = new JComboBox<>(FloorType.values());
     private final JComboBox<BedType> bedTypeBox = new JComboBox<>(BedType.values());
     private final JCheckBox smokingCheck = new JCheckBox();
+    private final JCheckBox availabilityCheck = new JCheckBox();
     private final JTextField dailyRateField = new JTextField(10);
 
     private final JButton backButton = new JButton();
 
-    public ModifyRoomUI(RoomService roomService) {
+    public ModifyRoomUI(RoomService roomService, ReservationController reservationController) {
         this.roomService = roomService;
+        this.reservationController = reservationController;
 
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -62,10 +64,11 @@ public class ModifyRoomUI extends JPanel {
 
         add(north, BorderLayout.NORTH);
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 8, 6));
+        JPanel form = new JPanel(new GridLayout(5, 2, 8, 6));
         form.add(new JLabel("Floor Type:"));   form.add(floorTypeBox);
         form.add(new JLabel("Bed Type:"));     form.add(bedTypeBox);
         form.add(new JLabel("Smoking:"));      form.add(smokingCheck);
+        form.add(new JLabel("Available:"));    form.add(availabilityCheck); // ADDED
         form.add(new JLabel("Daily Rate:"));   form.add(dailyRateField);
         add(form, BorderLayout.CENTER);
 
@@ -137,6 +140,21 @@ public class ModifyRoomUI extends JPanel {
         }
         smokingCheck.setSelected(r.isSmoking());
         dailyRateField.setText(String.valueOf(r.getMaxDailyRate()));
+
+        availabilityCheck.setSelected(r.isAvailability());
+
+        LocalDate today = LocalDate.now();
+        boolean isOccupiedToday = reservationController.listReservations().stream()
+                .filter(res -> res.getRoom().getRoomNumber() == r.getRoomNumber())
+                .anyMatch(res -> !today.isBefore(res.getDateRange().getCheckInDate())
+                        && today.isBefore(res.getDateRange().getCheckOutDate()));
+
+        availabilityCheck.setEnabled(!isOccupiedToday);
+        if (isOccupiedToday) {
+            availabilityCheck.setToolTipText("Cannot modify availability while room is currently occupied.");
+        } else {
+            availabilityCheck.setToolTipText(null);
+        }
     }
 
     private void handleSave() {
@@ -157,8 +175,9 @@ public class ModifyRoomUI extends JPanel {
                     (FloorType) floorTypeBox.getSelectedItem(),
                     (BedType) bedTypeBox.getSelectedItem()
             );
-            Room existing = roomService.findRoom(num);
-            boolean availability = existing != null && existing.isAvailability();
+
+            boolean availability = availabilityCheck.isSelected();
+
             Room updated = new Room(
                     num,
                     smokingCheck.isSelected(),
@@ -186,4 +205,3 @@ public class ModifyRoomUI extends JPanel {
         backButton.setVisible(true);
     }
 }
-

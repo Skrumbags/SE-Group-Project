@@ -1,4 +1,4 @@
-package UI;
+package UI.Other;
 
 import Controllers.SearchController;
 import Domain.Rooms.Room;
@@ -14,32 +14,40 @@ import java.time.temporal.ChronoUnit;
 import java.util.function.BiConsumer;
 
 /**
- * Month-by-month calendar for one room within the search window. Days outside that window are
- * disabled. User picks check-in, then check-out (exclusive end date, matching {@link DateRange}).
+ * Calendar for one room: pick check-in then checkout (exclusive end, matching {@link DateRange}).
+ * One month at a time (Prev/Next). Stays are limited by room availability, {@link DateRange#MAX_STAY},
+ * and a forward booking horizon (matches the room search date spinners), not by the last search range.
  */
 public class RoomCalendarAvailabilityDialog extends JDialog {
 
     private static final DateTimeFormatter TITLE = DateTimeFormatter.ofPattern("MMMM yyyy");
+    /** Last calendar night offered for check-in; aligned with {@code RoomAvailabilityPanel} spinners. */
+    private static final int BOOKING_HORIZON_YEARS_AHEAD = 3;
 
     private final SearchController searchController;
     private final Room room;
-    private final LocalDate searchStartInclusive;
-    private final LocalDate searchEndExclusive;
     private final BiConsumer<Room, DateRange> onConfirmed;
 
     private final JPanel monthsHost = new JPanel();
     private final JLabel hint = new JLabel(" ");
+    private final JButton prevMonthBtn = new JButton("‹ Prev month");
+    private final JButton nextMonthBtn = new JButton("Next month ›");
+    private final JLabel currentMonthLabel = new JLabel(" ", SwingConstants.CENTER);
+    /** Month currently shown in the calendar grid. */
+    private YearMonth viewMonth;
     private LocalDate checkIn;
 
+    /**
+     * @param initialCalendarMonth first month to show (e.g. from the user's last search); only affects the view
+     */
     public RoomCalendarAvailabilityDialog(Window owner, SearchController searchController, Room room,
-                                          LocalDate searchStartInclusive, LocalDate searchEndExclusive,
+                                          LocalDate initialCalendarMonth,
                                           BiConsumer<Room, DateRange> onConfirmed) {
         super(owner, "Availability — Room " + room.getRoomNumber(), ModalityType.APPLICATION_MODAL);
         this.searchController = searchController;
         this.room = room;
-        this.searchStartInclusive = searchStartInclusive;
-        this.searchEndExclusive = searchEndExclusive;
         this.onConfirmed = onConfirmed;
+        this.viewMonth = YearMonth.from(initialCalendarMonth);
 
         setLayout(new BorderLayout(8, 8));
         ((JComponent) getContentPane()).setBorder(new EmptyBorder(12, 12, 12, 12));
@@ -51,7 +59,9 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
 
         JLabel rangeLine = new JLabel(
-                "Your search: " + searchStartInclusive + " → " + searchEndExclusive + " (checkout morning)",
+                "<html><div style='text-align:center'>Pick any available stay (checkout after check-in, up to "
+                        + DateRange.MAX_STAY + " nights). Check-in may be from today through "
+                        + lastBookableNightInclusive() + ".</div></html>",
                 SwingConstants.CENTER);
         rangeLine.setFont(new Font("SansSerif", Font.PLAIN, 12));
         rangeLine.setForeground(new Color(80, 80, 80));
@@ -66,13 +76,39 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         JPanel hintWrap = new JPanel(new BorderLayout());
         hintWrap.add(hint, BorderLayout.CENTER);
 
-        monthsHost.setLayout(new BoxLayout(monthsHost, BoxLayout.Y_AXIS));
+        monthsHost.setLayout(new BorderLayout());
         JScrollPane scroll = new JScrollPane(monthsHost);
-        scroll.setPreferredSize(new Dimension(520, 420));
+        scroll.setPreferredSize(new Dimension(520, 340));
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        currentMonthLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        prevMonthBtn.setToolTipText("Show the previous month");
+        nextMonthBtn.setToolTipText("Show the next month");
+        prevMonthBtn.addActionListener(e -> {
+            if (viewMonth.isAfter(navigableMinMonth())) {
+                viewMonth = viewMonth.minusMonths(1);
+                updateHintAndRebuild();
+            }
+        });
+        nextMonthBtn.addActionListener(e -> {
+            if (viewMonth.isBefore(navigableMaxMonth())) {
+                viewMonth = viewMonth.plusMonths(1);
+                updateHintAndRebuild();
+            }
+        });
+
+        JPanel monthNav = new JPanel(new BorderLayout(8, 0));
+        monthNav.add(prevMonthBtn, BorderLayout.WEST);
+        monthNav.add(currentMonthLabel, BorderLayout.CENTER);
+        monthNav.add(nextMonthBtn, BorderLayout.EAST);
+
+        JPanel middle = new JPanel(new BorderLayout(0, 8));
+        middle.add(monthNav, BorderLayout.NORTH);
+        middle.add(scroll, BorderLayout.CENTER);
 
         JPanel center = new JPanel(new BorderLayout(0, 8));
         center.add(hintWrap, BorderLayout.NORTH);
-        center.add(scroll, BorderLayout.CENTER);
+        center.add(middle, BorderLayout.CENTER);
         add(center, BorderLayout.CENTER);
 
         JPanel south = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
@@ -94,7 +130,8 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
             hint.setText("<html><div style='text-align:center;width:480px'>"
                     + "Step 1: Click your <b>check-in</b> date (first night). "
                     + "Step 2: Click <b>checkout</b> (morning you leave). "
-                    + "Days outside your search range are greyed out."
+                    + "Use <b>Prev month / Next month</b> to change months. "
+                    + "Unavailable or past dates are greyed out."
                     + "</div></html>");
         } else {
             hint.setText("<html><div style='text-align:center;width:480px'>"
@@ -104,21 +141,47 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         rebuildMonths();
     }
 
+    private static LocalDate lastBookableNightInclusive() {
+        return LocalDate.now().plusYears(BOOKING_HORIZON_YEARS_AHEAD);
+    }
+
+    /** One month before the current month (context only). */
+    private YearMonth navigableMinMonth() {
+        return YearMonth.from(LocalDate.now()).minusMonths(1);
+    }
+
+    /** Enough months to pick checkout up to {@link DateRange#MAX_STAY} nights from the last check-in night. */
+    private YearMonth navigableMaxMonth() {
+        LocalDate farCheckout = lastBookableNightInclusive().plusDays(DateRange.MAX_STAY);
+        return YearMonth.from(farCheckout).plusMonths(1);
+    }
+
+    private boolean canPickAsCheckIn(LocalDate date, LocalDate today) {
+        if (date.isBefore(today)) {
+            return false;
+        }
+        if (date.isAfter(lastBookableNightInclusive())) {
+            return false;
+        }
+        return searchController.isRoomFreeForNight(room, date);
+    }
+
     private void rebuildMonths() {
+        if (viewMonth.isBefore(navigableMinMonth())) {
+            viewMonth = navigableMinMonth();
+        }
+        if (viewMonth.isAfter(navigableMaxMonth())) {
+            viewMonth = navigableMaxMonth();
+        }
         monthsHost.removeAll();
         LocalDate today = LocalDate.now();
-        YearMonth cur = YearMonth.from(searchStartInclusive);
-        YearMonth last = YearMonth.from(searchEndExclusive.minusDays(1));
-        if (last.isBefore(cur)) {
-            last = cur;
-        }
-        while (!cur.isAfter(last)) {
-            monthsHost.add(buildMonthCard(cur, today));
-            monthsHost.add(Box.createVerticalStrut(16));
-            cur = cur.plusMonths(1);
-        }
+        monthsHost.add(buildMonthCard(viewMonth, today), BorderLayout.CENTER);
         monthsHost.revalidate();
         monthsHost.repaint();
+
+        currentMonthLabel.setText(viewMonth.format(TITLE));
+        prevMonthBtn.setEnabled(viewMonth.isAfter(navigableMinMonth()));
+        nextMonthBtn.setEnabled(viewMonth.isBefore(navigableMaxMonth()));
     }
 
     private JPanel buildMonthCard(YearMonth ym, LocalDate today) {
@@ -161,50 +224,43 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         return card;
     }
 
-    /** Calendar band matching search spinners: inclusive through exclusive end date. */
-    private boolean inSearchBand(LocalDate date) {
-        return !date.isBefore(searchStartInclusive) && !date.isAfter(searchEndExclusive);
-    }
-
     private JButton dayButton(LocalDate date, LocalDate today) {
         JButton b = new JButton(String.valueOf(date.getDayOfMonth()));
         b.setMargin(new Insets(4, 2, 4, 2));
         b.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        boolean outsideSearch = !inSearchBand(date);
         boolean past = date.isBefore(today);
         boolean nightTaken = !searchController.isRoomFreeForNight(room, date);
+        boolean tooFarForCheckIn = date.isAfter(lastBookableNightInclusive());
 
         boolean enabled;
         if (checkIn == null) {
-            enabled = !outsideSearch && !past && !nightTaken && date.isBefore(searchEndExclusive);
+            enabled = canPickAsCheckIn(date, today);
         } else {
             if (date.isEqual(checkIn)) {
                 b.setBackground(new Color(180, 210, 255));
                 b.setOpaque(true);
-                enabled = !outsideSearch && !past && !nightTaken;
-            } else if (date.isBefore(checkIn) || date.isEqual(checkIn)) {
-                enabled = !outsideSearch && !past && !nightTaken && date.isBefore(searchEndExclusive);
+                enabled = canPickAsCheckIn(date, today);
+            } else if (date.isBefore(checkIn)) {
+                enabled = canPickAsCheckIn(date, today);
             } else {
-                enabled = !outsideSearch && isValidCheckoutChoice(date);
+                enabled = isValidCheckoutChoice(date);
             }
         }
 
         if (!enabled) {
             b.setEnabled(false);
             b.setForeground(new Color(160, 160, 160));
-            if (outsideSearch) {
+            if (tooFarForCheckIn && (checkIn == null || !date.isAfter(checkIn))) {
                 b.setBackground(new Color(232, 232, 232));
                 b.setOpaque(true);
-                b.setToolTipText("Outside your search date range");
+                b.setToolTipText("Check-in cannot be after " + lastBookableNightInclusive());
             } else if (nightTaken && !past) {
                 b.setToolTipText("Booked that night");
             } else if (past) {
                 b.setToolTipText("Past date");
             } else if (checkIn != null && date.isAfter(checkIn)) {
-                b.setToolTipText("Not available for this check-in / exceeds max stay");
-            } else if (checkIn == null && !date.isBefore(searchEndExclusive)) {
-                b.setToolTipText("Check-in must be before your search \"To\" date");
+                b.setToolTipText("Not available for this check-in or over " + DateRange.MAX_STAY + " nights");
             }
         } else {
             if (checkIn == null) {
@@ -221,12 +277,6 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         return b;
     }
 
-    private boolean stayWithinSearchWindow(LocalDate in, LocalDate outExclusive) {
-        return !in.isBefore(searchStartInclusive)
-                && !outExclusive.isAfter(searchEndExclusive)
-                && in.isBefore(outExclusive);
-    }
-
     private boolean isValidCheckoutChoice(LocalDate checkoutExclusive) {
         if (checkoutExclusive.isBefore(checkIn) || checkoutExclusive.isEqual(checkIn)) {
             return false;
@@ -235,24 +285,13 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         if (nights <= 0 || nights > DateRange.MAX_STAY) {
             return false;
         }
-        if (!stayWithinSearchWindow(checkIn, checkoutExclusive)) {
-            return false;
-        }
         return searchController.isRoomFreeForStay(room, checkIn, checkoutExclusive);
     }
 
     private void onDayClicked(LocalDate date) {
-        if (!inSearchBand(date)) {
-            return;
-        }
+        LocalDate today = LocalDate.now();
         if (checkIn == null) {
-            if (date.isBefore(LocalDate.now())) {
-                return;
-            }
-            if (!inSearchBand(date) || !date.isBefore(searchEndExclusive)) {
-                return;
-            }
-            if (!searchController.isRoomFreeForNight(room, date)) {
+            if (!canPickAsCheckIn(date, today)) {
                 return;
             }
             checkIn = date;
@@ -261,10 +300,7 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
         }
 
         if (date.isBefore(checkIn) || date.isEqual(checkIn)) {
-            if (date.isBefore(LocalDate.now()) || !inSearchBand(date) || !date.isBefore(searchEndExclusive)) {
-                return;
-            }
-            if (!searchController.isRoomFreeForNight(room, date)) {
+            if (!canPickAsCheckIn(date, today)) {
                 return;
             }
             checkIn = date;
@@ -274,7 +310,7 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
 
         if (!isValidCheckoutChoice(date)) {
             JOptionPane.showMessageDialog(this,
-                    "That checkout date is not available for this room and check-in (conflict, outside search range, or over "
+                    "That checkout date is not available for this room and check-in (conflict or over "
                             + DateRange.MAX_STAY + " nights).",
                     "Unavailable",
                     JOptionPane.WARNING_MESSAGE);
@@ -297,13 +333,6 @@ public class RoomCalendarAvailabilityDialog extends JDialog {
             return;
         }
         LocalDate checkout = checkIn.plusDays(1);
-        if (!stayWithinSearchWindow(checkIn, checkout)) {
-            JOptionPane.showMessageDialog(this,
-                    "One night from this check-in falls outside your search dates.",
-                    "Outside search range",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
         if (!searchController.isRoomFreeForStay(room, checkIn, checkout)) {
             JOptionPane.showMessageDialog(this, "That night is not available.", "Unavailable",
                     JOptionPane.WARNING_MESSAGE);

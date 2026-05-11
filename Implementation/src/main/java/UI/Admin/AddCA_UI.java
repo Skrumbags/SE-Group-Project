@@ -1,6 +1,7 @@
 package UI.Admin;
 
 import Controllers.UserController;
+import Domain.Reservations.BookingValidation;
 import Domain.Services.UserService;
 
 import javax.swing.*;
@@ -28,15 +29,15 @@ public class AddCA_UI extends JPanel {
         add(new JLabel("Password:"));  add(passwordField);
         add(new JLabel("Full Name:")); add(nameField);
 
-        JButton registerButton = new JButton("Register User");
+        JButton registerButton = new JButton("Register Clerk");
         add(backButton);
         backButton.setVisible(false);
         add(registerButton);
 
-        registerButton.addActionListener(e -> handleAddUser());
+        registerButton.addActionListener(e -> handleAddClerk());
     }
 
-    private void handleAddUser() {
+    private void handleAddClerk() {
         int id;
         try {
             id = Integer.parseInt(employeeID.getText().trim());
@@ -50,6 +51,40 @@ public class AddCA_UI extends JPanel {
         String password = new String(passwordField.getPassword()).trim();
         String name     = nameField.getText().trim();
 
+        if (username.isBlank() || password.isBlank()) {
+            JOptionPane.showMessageDialog(this,
+                    "Username and password are required.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String nameError = BookingValidation.validateGuestName(name);
+        if (nameError != null) {
+            JOptionPane.showMessageDialog(this,
+                    nameError,
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (username.contains(" ")) {
+            JOptionPane.showMessageDialog(this,
+                    "Username cannot contain spaces.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (password.length() < 4) {
+            JOptionPane.showMessageDialog(this,
+                    "Password must be at least 4 characters.",
+                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (userController.exists(username)) {
+            JOptionPane.showMessageDialog(this,
+                    "Username \"" + username + "\" is already taken. Please choose another.",
+                    "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         UserService.Result result = userController.addClerk(id, username, password, name);
 
         switch (result) {
@@ -60,17 +95,27 @@ public class AddCA_UI extends JPanel {
                     JOptionPane.showMessageDialog(this,
                             "Username \"" + username + "\" is already taken. Please choose another.",
                             "Duplicate Username", JOptionPane.WARNING_MESSAGE);
+            case DUPLICATE_EMPLOYEE_ID ->
+                    JOptionPane.showMessageDialog(this,
+                            "Employee ID \"" + id + "\" is already assigned to another account.",
+                            "Duplicate Employee ID", JOptionPane.WARNING_MESSAGE);
             case INVALID_INPUT ->
                     JOptionPane.showMessageDialog(this,
-                            "Username, password, and full name are required.",
+                            "Invalid input provided. Please check the fields and try again.",
                             "Invalid Input", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public void setBackAction(ActionListener goBack, String backMessage) {
         backButton.addActionListener(goBack);
-        backButton.setLabel("← Back to Welcome");
+        backButton.setText("← Back to Welcome");
         backButton.setVisible(true);
     }
-}
 
+    public void refresh() {
+        employeeID.setText("");
+        usernameField.setText("");
+        passwordField.setText("");
+        nameField.setText("");
+    }
+}

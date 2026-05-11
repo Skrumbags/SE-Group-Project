@@ -31,6 +31,22 @@ public class ShoppingController {
         return shoppingService.listProducts(userSession);
     }
 
+    public List<Item> listAllProductsForClerk() {
+        return shoppingService.listAllProductsForClerk(userSession);
+    }
+
+    public long clerkCreateProduct(String sku, String name, String description, double unitPrice, int stockQty) {
+        return shoppingService.clerkCreateProduct(userSession, sku, name, description, unitPrice, stockQty);
+    }
+
+    public void clerkUpdateProductUnitPrice(long productId, double unitPrice) {
+        shoppingService.clerkUpdateProductUnitPrice(userSession, productId, unitPrice);
+    }
+
+    public void clerkUpdateProductStockQty(long productId, int stockQty) {
+        shoppingService.clerkUpdateProductStockQty(userSession, productId, stockQty);
+    }
+
     public Cart getCart() {
         return shoppingService.getCart(userSession);
     }
@@ -62,6 +78,10 @@ public class ShoppingController {
     /** Clerk-only: same snapshot as the guest’s combined bill for {@code guestUserId}. */
     public CombinedBill combinedBillForGuest(long guestUserId) {
         return shoppingService.buildCombinedBillForClerk(userSession, reservationService, guestUserId);
+    }
+
+    public CombinedBill combinedBillForReservation(String confirmationNumber) {
+        return shoppingService.buildCombinedBillForReservation(userSession, reservationService, confirmationNumber);
     }
 }
 

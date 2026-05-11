@@ -13,6 +13,8 @@ import TechnicalServices.Persistence.SqliteStorePersistence;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ShoppingService {
 
@@ -35,6 +37,65 @@ public class ShoppingService {
             return storeDb.listActiveProducts();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load products", e);
+        }
+    }
+
+    /** Clerk: full catalog including inactive rows (for price/stock / new SKU management). */
+    public List<Item> listAllProductsForClerk(UserSession session) {
+        session.requireLoggedInClerk();
+        try {
+            return storeDb.listAllProducts();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load products", e);
+        }
+    }
+
+    /**
+     * Clerk: add a new sellable product (active in guest catalog).
+     *
+     * @throws IllegalArgumentException duplicate SKU or invalid fields
+     */
+    public long clerkCreateProduct(UserSession session,
+                                   String sku,
+                                   String name,
+                                   String description,
+                                   double unitPrice,
+                                   int stockQty) {
+        session.requireLoggedInClerk();
+        if (sku == null || sku.isBlank()) throw new IllegalArgumentException("SKU is required.");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name is required.");
+        if (unitPrice < 0) throw new IllegalArgumentException("Unit price cannot be negative.");
+        if (stockQty < 0) throw new IllegalArgumentException("Stock cannot be negative.");
+        try {
+            return storeDb.createProduct(sku.trim(), name.trim(), description, unitPrice, stockQty, true);
+        } catch (SQLException e) {
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            if (msg.contains("UNIQUE") && msg.contains("sku")) {
+                throw new IllegalArgumentException("A product with that SKU already exists.", e);
+            }
+            throw new RuntimeException("Failed to create product", e);
+        }
+    }
+
+    public void clerkUpdateProductUnitPrice(UserSession session, long productId, double unitPrice) {
+        session.requireLoggedInClerk();
+        if (productId <= 0) throw new IllegalArgumentException("A valid product id is required.");
+        try {
+            int n = storeDb.updateProductUnitPrice(productId, unitPrice);
+            if (n == 0) throw new IllegalArgumentException("Unknown product id: " + productId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update price", e);
+        }
+    }
+
+    public void clerkUpdateProductStockQty(UserSession session, long productId, int stockQty) {
+        session.requireLoggedInClerk();
+        if (productId <= 0) throw new IllegalArgumentException("A valid product id is required.");
+        try {
+            int n = storeDb.updateProductStockQty(productId, stockQty);
+            if (n == 0) throw new IllegalArgumentException("Unknown product id: " + productId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update stock", e);
         }
     }
 
@@ -141,29 +202,92 @@ public class ShoppingService {
         return buildCombinedBillForGuestId(guestUserId, reservationService);
     }
 
+    /**
+     * If the guest has an active stay today, the bill is scoped to that reservation (room row + purchases
+     * tied to its confirmation). Otherwise all reservations and all purchases for the guest are included
+     * (e.g. after checkout or when viewing history while not checked in).
+     */
     private CombinedBill buildCombinedBillForGuestId(long guestId, ReservationService reservationService) {
-        List<Reservation> reservations = reservationService.getReservations().stream()
+        List<Reservation> allForGuest = reservationService.getReservations().stream()
                 .filter(r -> r.getGuestUserId() != null && r.getGuestUserId().equals(guestId))
                 .toList();
-        double staySubtotal = roundMoney(reservations.stream().mapToDouble(Reservation::getTotalCost).sum());
-        double roomTax = roundMoney(staySubtotal * taxRate);
-        double stayTotal = roundMoney(staySubtotal + roomTax);
 
-        List<Purchase> purchases;
+        LocalDate today = LocalDate.now();
+        List<Reservation> activeToday = allForGuest.stream()
+                .filter(Reservation::isActive)
+                .filter(r -> stayIncludesNight(r, today))
+                .toList();
+
+        List<Reservation> reservationsForBill;
+        List<Purchase> purchasesForBill;
         try {
-            purchases = storeDb.listPurchasesForGuest(guestId);
+            List<Purchase> allPurchases = storeDb.listPurchasesForGuest(guestId);
+            if (!activeToday.isEmpty()) {
+                reservationsForBill = activeToday;
+                Set<String> activeConfs = activeToday.stream()
+                        .map(Reservation::getConfirmationNumber)
+                        .collect(Collectors.toSet());
+                purchasesForBill = allPurchases.stream()
+                        .filter(p -> {
+                            String c = p.getReservationConfirmationOrNull();
+                            return c != null && activeConfs.contains(c);
+                        })
+                        .toList();
+            } else {
+                reservationsForBill = allForGuest;
+                purchasesForBill = allPurchases;
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load purchases", e);
         }
-        double shoppingSubtotal = roundMoney(purchases.stream().mapToDouble(Purchase::getSubtotal).sum());
+
+        double staySubtotal = roundMoney(reservationsForBill.stream().mapToDouble(Reservation::getTotalCost).sum());
+        double roomTax = roundMoney(staySubtotal * taxRate);
+        double stayTotal = roundMoney(staySubtotal + roomTax);
+        double shoppingSubtotal = roundMoney(purchasesForBill.stream().mapToDouble(Purchase::getSubtotal).sum());
         double combinedTotal = roundMoney(stayTotal + shoppingSubtotal);
 
-        return new CombinedBill(guestId, reservations, purchases,
+        return new CombinedBill(guestId, reservationsForBill, purchasesForBill,
                 staySubtotal, roomTax, stayTotal, shoppingSubtotal, combinedTotal);
+    }
+
+    private static boolean stayIncludesNight(Reservation r, LocalDate night) {
+        var dr = r.getDateRange();
+        return !night.isBefore(dr.getCheckInDate()) && night.isBefore(dr.getCheckOutDate());
     }
 
     private static double roundMoney(double v) {
         return Math.round(v * 100.0) / 100.0;
+    }
+
+    public CombinedBill buildCombinedBillForReservation(UserSession session, ReservationService reservationService, String confirmationNumber) {
+        session.requireLoggedInClerk();
+
+        Reservation res = reservationService.findReservation(confirmationNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + confirmationNumber));
+
+        long guestId = res.getGuestUserId() != null ? res.getGuestUserId() : 0;
+        List<Reservation> reservationsForBill = List.of(res);
+
+        List<Purchase> purchasesForBill;
+        try {
+            List<Purchase> allPurchases = storeDb.listPurchasesForGuest(guestId);
+            // Filter to only purchases made under this specific confirmation number
+            purchasesForBill = allPurchases.stream()
+                    .filter(p -> confirmationNumber.equals(p.getReservationConfirmationOrNull()))
+                    .toList();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load purchases", e);
+        }
+
+        double staySubtotal = roundMoney(res.getTotalCost());
+        double roomTax = roundMoney(staySubtotal * taxRate);
+        double stayTotal = roundMoney(staySubtotal + roomTax);
+        double shoppingSubtotal = roundMoney(purchasesForBill.stream().mapToDouble(Purchase::getSubtotal).sum());
+        double combinedTotal = roundMoney(stayTotal + shoppingSubtotal);
+
+        return new CombinedBill(guestId, reservationsForBill, purchasesForBill,
+                staySubtotal, roomTax, stayTotal, shoppingSubtotal, combinedTotal);
     }
 }
 

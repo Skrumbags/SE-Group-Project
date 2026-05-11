@@ -1,4 +1,4 @@
-package UI;
+package UI.Other;
 
 import Controllers.SearchController;
 import Domain.Rooms.Room;
@@ -29,12 +29,11 @@ public class RoomAvailabilityPanel extends JPanel {
     private static final Color GREEN      = new Color(34, 139, 34);
     private static final Color GREEN_LIGHT= new Color(220, 245, 220);
 
-    private final JPanel resultsGrid = new JPanel();
+    private final ScrollableWrapPanel resultsGrid = new ScrollableWrapPanel();
     private final SearchController searchController;
     private final BiConsumer<Room, DateRange> onRoomStayChosen;
 
     private LocalDate lastSearchStartInclusive;
-    private LocalDate lastSearchEndExclusive;
 
     private static final DateTimeFormatter BAR_DATE = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
@@ -62,10 +61,16 @@ public class RoomAvailabilityPanel extends JPanel {
         beginDate.setPreferredSize(new Dimension(110, 30));
         endDate.setPreferredSize(new Dimension(110, 30));
 
-        JComboBox<RoomType.FloorType> floorBox = new JComboBox<>(RoomType.FloorType.values());
-        JComboBox<RoomType.BedType>   bedBox   = new JComboBox<>(RoomType.BedType.values());
-        JTextField guestsField = new JTextField(3);
-        guestsField.setPreferredSize(new Dimension(50, 30));
+        JComboBox<String> floorBox = new JComboBox<>();
+        floorBox.addItem("Any");
+        for (RoomType.FloorType f : RoomType.FloorType.values()) floorBox.addItem(f.name());
+
+        JComboBox<String> bedBox = new JComboBox<>();
+        bedBox.addItem("Any");
+        for (RoomType.BedType b : RoomType.BedType.values()) bedBox.addItem(b.name());
+
+        JComboBox<String> smokingBox = new JComboBox<>(new String[]{"Any", "Smoking", "Non-smoking"});
+        smokingBox.setPreferredSize(new Dimension(100, 30));
 
         JButton searchButton = new JButton("Search rooms");
         searchButton.setBackground(BLUE);
@@ -76,12 +81,12 @@ public class RoomAvailabilityPanel extends JPanel {
         searchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         searchButton.setPreferredSize(new Dimension(130, 30));
 
-        // row 1 — dates and guests
+        // row 1 — dates and smoking preference
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
         row1.setBackground(CARD_BG);
         row1.add(makeBarLabel("From:"));  row1.add(beginDate);
         row1.add(makeBarLabel("To:"));    row1.add(endDate);
-        row1.add(makeBarLabel("Guests:")); row1.add(guestsField);
+        row1.add(makeBarLabel("Smoking:")); row1.add(smokingBox);
 
         // row 2 — filters and button
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
@@ -101,6 +106,11 @@ public class RoomAvailabilityPanel extends JPanel {
         scroll.setPreferredSize(null);   // let it size naturally
         scroll.setMinimumSize(new Dimension(0, 0));
 
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(20);
+
+        scroll.getViewport().setBackground(new Color(245, 247, 250));
+
         // placeholder
         showPlaceholder("Search for available rooms above.");
 
@@ -112,7 +122,6 @@ public class RoomAvailabilityPanel extends JPanel {
             try {
                 LocalDate start = LocalDate.parse((String) beginDate.getValue(), BAR_DATE);
                 LocalDate end   = LocalDate.parse((String) endDate.getValue(), BAR_DATE);
-                int numGuests   = Integer.parseInt(guestsField.getText().trim());
 
                 long span = ChronoUnit.DAYS.between(start, end);
                 if (span <= 0) {
@@ -128,15 +137,26 @@ public class RoomAvailabilityPanel extends JPanel {
                     return;
                 }
 
-                RoomType roomType  = new RoomType(
-                        (RoomType.FloorType) floorBox.getSelectedItem(),
-                        (RoomType.BedType)   bedBox.getSelectedItem()
-                );
-                SearchCriteria criteria = new SearchCriteria(start, end, roomType, numGuests);
+                String floorSel = (String) floorBox.getSelectedItem();
+                String bedSel = (String) bedBox.getSelectedItem();
+
+                RoomType.FloorType floorType = "Any".equals(floorSel) ? null : RoomType.FloorType.valueOf(floorSel);
+                RoomType.BedType bedType = "Any".equals(bedSel) ? null : RoomType.BedType.valueOf(bedSel);
+
+                RoomType roomType = (floorType == null && bedType == null) ? null : new RoomType(floorType, bedType);
+
+                Boolean isSmoking = null; // Default to "Any"
+                String smokingSelection = (String) smokingBox.getSelectedItem();
+                if ("Smoking".equals(smokingSelection)) {
+                    isSmoking = true;
+                } else if ("Non-smoking".equals(smokingSelection)) {
+                    isSmoking = false;
+                }
+
+                SearchCriteria criteria = new SearchCriteria(start, end, roomType, isSmoking);
                 List<Room> results = searchController.searchRooms(criteria);
 
                 lastSearchStartInclusive = start;
-                lastSearchEndExclusive = end;
 
                 resultsGrid.removeAll();
                 if (results.isEmpty()) {
@@ -150,13 +170,7 @@ public class RoomAvailabilityPanel extends JPanel {
             } catch (java.time.format.DateTimeParseException ex) {
                 JOptionPane.showMessageDialog(this, "Please choose valid From and To dates.",
                         "Invalid Dates", JOptionPane.ERROR_MESSAGE);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Please enter a valid number of guests.",
-                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
             } catch (IllegalArgumentException ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(),
-                        "Invalid Dates", JOptionPane.ERROR_MESSAGE);
-            } catch (RuntimeException ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(),
                         "Invalid Dates", JOptionPane.ERROR_MESSAGE);
             }
@@ -221,20 +235,15 @@ public class RoomAvailabilityPanel extends JPanel {
         card.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (lastSearchStartInclusive == null || lastSearchEndExclusive == null) {
-                    JOptionPane.showMessageDialog(RoomAvailabilityPanel.this,
-                            "Run a room search first to set your date range.",
-                            "Search required",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    return;
-                }
                 Window w = SwingUtilities.getWindowAncestor(RoomAvailabilityPanel.this);
+                LocalDate calendarMonthHint = lastSearchStartInclusive != null
+                        ? lastSearchStartInclusive
+                        : LocalDate.now();
                 new RoomCalendarAvailabilityDialog(
                         w,
                         searchController,
                         r,
-                        lastSearchStartInclusive,
-                        lastSearchEndExclusive,
+                        calendarMonthHint,
                         onRoomStayChosen
                 ).setVisible(true);
             }
@@ -280,5 +289,37 @@ public class RoomAvailabilityPanel extends JPanel {
         JSpinner sp = new JSpinner(model);
         sp.setValue(clamped.format(BAR_DATE));
         return sp;
+    }
+
+    /**
+     * Custom JPanel that implements Scrollable.
+     * Returning 'true' for getScrollableTracksViewportWidth() is the magic bullet
+     * that forces the WrapLayout to push items to the next row instead of running off-screen.
+     */
+    private static class ScrollableWrapPanel extends JPanel implements Scrollable {
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 20; // Re-enforces the faster scroll wheel speed
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return Math.max(20, visibleRect.height);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true; // Force the width to track the viewport, wrapping the cards!
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false; // Allow the height to expand infinitely for the vertical scrollbar
+        }
     }
 }

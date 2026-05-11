@@ -10,6 +10,7 @@ import Domain.Services.ReservationService;
 import Domain.Services.RoomService;
 import Domain.Shared.DateRange;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,11 +57,22 @@ public class ReservationController {
     }
 
     public List<Reservation> listReservations() {
-        return reservationService.getReservations();
+        List<Reservation> resList = reservationService.getReservations();
+        hydrateRooms(resList);
+        return resList;
+    }
+
+    /** Active (checked-in) reservations whose stay includes today. */
+    public List<Reservation> listCheckedInGuestsToday() {
+        List<Reservation> list = reservationService.listCheckedInStaysOnDate(userSession, LocalDate.now());
+        hydrateRooms(list);
+        return list;
     }
 
     public Optional<Reservation> findReservation(String confirmationNumber) {
-        return reservationService.findReservation(confirmationNumber);
+        Optional<Reservation> res = reservationService.findReservation(confirmationNumber);
+        res.ifPresent(r -> hydrateRooms(List.of(r)));
+        return res;
     }
 
     public ReservationSummary clerkBuildPreview(int roomNumber, String guestName,
@@ -124,25 +136,37 @@ public class ReservationController {
     }
 
     public String cancelReservation(String confirmationNumber) {
-        return reservationService.cancelReservation(userSession, confirmationNumber);
+        // Pass the list of rooms into the service so it can calculate the penalty
+        return reservationService.cancelReservation(userSession, confirmationNumber, roomService.getRooms());
     }
 
     public String modifyGuestItinerary(String confirmationNumber, int newRoomNumber, DateRange newDates) {
-        // 1. Controller fetches the Room object
         Room newRoom = roomService.getRooms().stream()
                 .filter(r -> r.getRoomNumber() == newRoomNumber)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Invalid room number selected."));
 
-        // 2. Pass the domain object to the Service
-        return reservationService.modifyGuestItinerary(userSession, confirmationNumber, newRoom, newDates);
+        // Pass the list of rooms into the service
+        return reservationService.modifyGuestItinerary(userSession, confirmationNumber, newRoom, newDates, roomService.getRooms());
     }
 
     public List<Reservation> getMyReservations() {
         Long myId = userSession.requireLoggedInGuest().getDatabaseId();
-        return reservationService.getReservations().stream()
+        List<Reservation> resList = reservationService.getReservations().stream()
                 .filter(r -> myId.equals(r.getGuestUserId()))
                 .toList();
+
+        // HYDRATE the rooms: explicitly inject the real Room objects into the reservations.
+        // This ensures the UI has the real $ values for the peekPenaltyFee() warnings.
+        List<Room> allRooms = roomService.getRooms();
+        for (Reservation r : resList) {
+            allRooms.stream()
+                    .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
+                    .findFirst()
+                    .ifPresent(r::setRoom);
+        }
+
+        return resList;
     }
 
     public List<Room> getAvailableRoomsForModification(DateRange newDates, String excludeConfirmation) {
@@ -151,5 +175,15 @@ public class ReservationController {
 
     public void modifyGuestPersonalDetails(String confirmationNumber, String newName, String newCard) {
         reservationService.modifyGuestPersonalDetails(userSession, confirmationNumber, newName, newCard);
+    }
+
+    private void hydrateRooms(List<Reservation> resList) {
+        List<Room> allRooms = roomService.getRooms();
+        for (Reservation r : resList) {
+            allRooms.stream()
+                    .filter(room -> room.getRoomNumber() == r.getRoom().getRoomNumber())
+                    .findFirst()
+                    .ifPresent(r::setRoom);
+        }
     }
 }

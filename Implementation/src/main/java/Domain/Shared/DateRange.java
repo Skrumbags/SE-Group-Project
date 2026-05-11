@@ -23,7 +23,7 @@ public class DateRange {
 
         long numDays = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
         if (numDays <= 0 || numDays > MAX_STAY) {
-            throw new RuntimeException("checkInDate must be before checkOutDate");
+            throw new IllegalArgumentException("checkInDate must be before checkOutDate");
         }
     }
 
@@ -34,7 +34,7 @@ public class DateRange {
 
         long numDays = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
         if (numDays <= 0 || numDays > MAX_STAY) {
-            throw new RuntimeException("checkInDate must be before checkOutDate");
+            throw new IllegalArgumentException("checkInDate must be before checkOutDate");
         }
     }
 

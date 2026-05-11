@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserService {
-    public enum Result { SUCCESS, DUPLICATE_USERNAME, INVALID_INPUT }
+    public enum Result { SUCCESS, DUPLICATE_USERNAME, DUPLICATE_EMAIL, DUPLICATE_EMPLOYEE_ID, INVALID_INPUT, INCORRECT_PASSWORD }
 
     /** Outcome of {@link #resetGuestPassword(String, String, String)} for guest self-service reset. */
     public enum GuestPasswordResetResult {
@@ -72,12 +72,16 @@ public class UserService {
         if (username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
+        if (exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
+        if (email != null && !email.isBlank() && emailExists(email)) {
+            return Result.DUPLICATE_EMAIL;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Guest guest = new Guest(username, encoded, name, phone, email);
-        if (!users.add(guest)) {
-            return Result.DUPLICATE_USERNAME;
-        }
+        users.add(guest);
         if (userDb != null) {
             try {
                 long id = userDb.saveGuest(username, encoded, name, phone, email);
@@ -89,16 +93,41 @@ public class UserService {
         return Result.SUCCESS;
     }
 
+    /** True if a guest already uses this email (case-insensitive). */
+    public boolean emailExists(String email) {
+        if (email == null || email.isBlank()) return false;
+        String needle = email.trim().toLowerCase();
+        return users.stream()
+                .filter(u -> u instanceof Guest)
+                .map(u -> ((Guest) u).getEmail())
+                .filter(e -> e != null && !e.isBlank())
+                .map(e -> e.trim().toLowerCase())
+                .anyMatch(needle::equals);
+    }
+
+    /** True if a clerk/admin already uses this employee id. */
+    public boolean employeeIdExists(int employeeId) {
+        return users.stream().anyMatch(u -> {
+            if (u instanceof Clerk c) return c.getEmployeeId() == employeeId;
+            if (u instanceof Admin a) return a.getEmployeeId() == employeeId;
+            return false;
+        });
+    }
+
     public Result addClerk(int employeeId, String username, String password, String name) {
         if (employeeId < 0 || username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
+        if (exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
+        if (employeeIdExists(employeeId)) {
+            return Result.DUPLICATE_EMPLOYEE_ID;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Clerk clerk = new Clerk(employeeId, username, encoded, name);
-        if (!users.add(clerk)) {
-            return Result.DUPLICATE_USERNAME;
-        }
+        users.add(clerk);
         if (userDb != null) {
             try {
                 long id = userDb.saveStaff(username, encoded, name, employeeId, "CLERK");
@@ -114,12 +143,16 @@ public class UserService {
         if (employeeId < 0 || username.isBlank() || password.isBlank() || name.isBlank()) {
             return Result.INVALID_INPUT;
         }
+        if (exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
+        if (employeeIdExists(employeeId)) {
+            return Result.DUPLICATE_EMPLOYEE_ID;
+        }
 
         String encoded = PasswordHasher.hashPassword(password);
         Admin admin = new Admin(employeeId, username, encoded, name);
-        if (!users.add(admin)) {
-            return Result.DUPLICATE_USERNAME;
-        }
+        users.add(admin);
         if (userDb != null) {
             try {
                 long id = userDb.saveStaff(username, encoded, name, employeeId, "ADMIN");
@@ -253,7 +286,51 @@ public class UserService {
         return Result.SUCCESS;
     }
 
+    public Result updateUserProfile(Long id, String username, String name, String phone, String email, String oldPw, String newPw) {
+        User u = findById(id);
+        if (u == null) return Result.INVALID_INPUT;
 
+        // 1. Core Validations
+        if (username == null || username.isBlank() || username.contains(" ")) return Result.INVALID_INPUT;
+        if (name == null || name.isBlank()) return Result.INVALID_INPUT;
 
+        if (u instanceof Guest) {
+            if (phone != null && !phone.isBlank() && !phone.matches("[0-9+()\\-\\s]{7,}")) return Result.INVALID_INPUT;
+            if (email != null && !email.isBlank() && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) return Result.INVALID_INPUT;
+        }
 
+        // 2. Uniqueness Validation
+        if (!u.getUsername().equals(username) && exists(username)) {
+            return Result.DUPLICATE_USERNAME;
+        }
+
+        // 3. Password Check
+        boolean changePw = (newPw != null && !newPw.isBlank());
+        if (changePw) {
+            if (newPw.length() < 4) return Result.INVALID_INPUT;
+            if (oldPw == null || oldPw.isBlank() || !u.checkPassword(oldPw)) return Result.INCORRECT_PASSWORD;
+        }
+
+        // 4. Persistence
+        if (userDb != null) {
+            try {
+                userDb.updateUserBasicInfo(id, username, name, (u instanceof Guest) ? phone : null, (u instanceof Guest) ? email : null);
+                if (changePw) {
+                    String encoded = PasswordHasher.hashPassword(newPw);
+                    userDb.updatePassword(id, encoded);
+                }
+                load(); // Reload the whole list from DB to ensure memory perfectly matches SQLite
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to update profile", e);
+            }
+        } else {
+            // Fallback for tests running without DB
+            if (u instanceof Guest g) {
+                g.setName(name);
+                g.setPhone(phone);
+                g.setEmail(email);
+            }
+        }
+        return Result.SUCCESS;
+    }
 }

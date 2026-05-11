@@ -1,7 +1,6 @@
-package UI;
+package UI.Other;
 
 import java.awt.*;
-import javax.swing.*;
 
 public class WrapLayout extends FlowLayout {
     public WrapLayout(int align, int hgap, int vgap) { super(align, hgap, vgap); }

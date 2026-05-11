@@ -1,9 +1,9 @@
-package UI;
+package UI.Other;
 
 import Controllers.SearchController;
 import Controllers.UserController;
 import Domain.People.UserSession;
-import UI.User.AddUserUI;
+import UI.Guest.CreateAccountUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -37,28 +37,8 @@ public class PublicUI extends JPanel {
         JPanel landing = new JPanel(new BorderLayout(10, 20));
         landing.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
-        JPanel northStack = new JPanel(new GridLayout(2, 1, 0, 6));
-        JLabel welcome = new JLabel("Welcome to Hotel Reservation App", SwingConstants.CENTER);
-        welcome.setFont(new Font("SansSerif", Font.BOLD, 22));
-        northStack.add(welcome);
-        JLabel tag = new JLabel("Search availability or sign in to book.", SwingConstants.CENTER);
-        tag.setFont(new Font("SansSerif", Font.PLAIN, 15));
-        northStack.add(tag);
-        landing.add(northStack, BorderLayout.NORTH);
-        landing.add(new RoomAvailabilityPanel(searchController, (room, range) -> {
-            userSession.setPendingReservation(new UserSession.PendingReservation(
-                    room.getRoomNumber(), range.getCheckInDate(), range.getCheckOutDate()));
-            JOptionPane.showMessageDialog(this,
-                    "Sign in or create a guest account to complete your reservation.\n\nRoom "
-                            + room.getRoomNumber() + ": "
-                            + range.getCheckInDate() + " → " + range.getCheckOutDate() + " (checkout morning).",
-                    "Sign in to reserve",
-                    JOptionPane.INFORMATION_MESSAGE);
-            bodyCards.show(body, "LOGIN");
-        }), BorderLayout.SOUTH);
-
-        AddUserUI addUserPanel = new AddUserUI(userController);
-        addUserPanel.setBackAction(e -> bodyCards.show(body, "LOGIN"), "← Back to login");
+        CreateAccountUI createAccountPanel = new CreateAccountUI(userController);
+        createAccountPanel.setBackAction(e -> bodyCards.show(body, "LOGIN"), "← Back to login");
 
         LoginUI loginPanel = new LoginUI(
                 userController,
@@ -67,16 +47,49 @@ public class PublicUI extends JPanel {
                 onAdminLogin,
                 onClerkLogin,
                 onGuestLogin,
-                () -> bodyCards.show(body, "ADD_USER")
+                () -> {
+                    createAccountPanel.refresh();
+                    bodyCards.show(body, "ADD_USER");
+                }
         );
+
+        JPanel northStack = new JPanel(new GridLayout(2, 1, 0, 6));
+        JLabel welcome = new JLabel("Welcome to Hotel Reservation App", SwingConstants.CENTER);
+        welcome.setFont(new Font("SansSerif", Font.BOLD, 22));
+        northStack.add(welcome);
+        JLabel tag = new JLabel("Search availability or sign in to book.", SwingConstants.CENTER);
+        tag.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        northStack.add(tag);
+        landing.add(northStack, BorderLayout.NORTH);
+
+        RoomAvailabilityPanel availability = new RoomAvailabilityPanel(searchController, (room, range) -> {
+            userSession.setPendingReservation(new UserSession.PendingReservation(
+                    room.getRoomNumber(), range.getCheckInDate(), range.getCheckOutDate()));
+            JOptionPane.showMessageDialog(this,
+                    "Sign in or create a guest account to complete your reservation.\n\nRoom "
+                            + room.getRoomNumber() + ": "
+                            + range.getCheckInDate() + " → " + range.getCheckOutDate() + " (checkout morning).",
+                    "Sign in to reserve",
+                    JOptionPane.INFORMATION_MESSAGE);
+            loginPanel.refresh();
+            bodyCards.show(body, "LOGIN");
+        });
+        // Center the search area vertically instead of pinning it to the bottom.
+        landing.add(availability, BorderLayout.CENTER);
+        landing.add(Box.createVerticalStrut(10), BorderLayout.SOUTH);
+
+
 
         body.add(landing, "LANDING");
         body.add(loginPanel, "LOGIN");
-        body.add(addUserPanel, "ADD_USER");
+        body.add(createAccountPanel, "ADD_USER");
         add(body, BorderLayout.CENTER);
 
         homeBtn.addActionListener(e -> bodyCards.show(body, "LANDING"));
-        loginNavBtn.addActionListener(e -> bodyCards.show(body, "LOGIN"));
+        loginNavBtn.addActionListener(e -> {
+            loginPanel.refresh();
+            bodyCards.show(body, "LOGIN");
+        });
     }
 
     public void showLanding() {

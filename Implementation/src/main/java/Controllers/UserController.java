@@ -11,10 +11,21 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserController {
     private final UserService userService;
+    private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+    private static final Duration LOGIN_LOCKOUT = Duration.ofSeconds(60);
+
+    /** Failed login attempts per username (lowercased). */
+    private final Map<String, Integer> failedLoginAttempts = new HashMap<>();
+    /** When set for username, logins are blocked until this time. */
+    private final Map<String, Instant> loginLockedUntil = new HashMap<>();
 
     public UserController(UserService userService) {
         this.userService = userService;
@@ -44,6 +55,7 @@ public class UserController {
         return userService.exists(username);
     }
 
+<<<<<<< HEAD
     public Guest findGuestByEmail(String email) {
         return userService.findGuestByEmail(email);
     }
@@ -51,6 +63,14 @@ public class UserController {
     public UserService.GuestPasswordResetResult resetGuestPassword(String email, String newPassword,
                                                                    String confirmPassword) {
         return userService.resetGuestPassword(email, newPassword, confirmPassword);
+=======
+    public boolean emailExists(String email) {
+        return userService.emailExists(email);
+    }
+
+    public boolean employeeIdExists(int employeeId) {
+        return userService.employeeIdExists(employeeId);
+>>>>>>> b2da699a364942976f550eda673b1c822ccfe770
     }
 
     public UserService getUserService() {
@@ -64,9 +84,39 @@ public class UserController {
      * @return the authenticated user (possibly replaced after rehash), or {@code null} if login fails
      */
     public User login(String username, String password) {
+        String key = (username == null) ? "" : username.trim().toLowerCase();
+        if (!key.isBlank()) {
+            Instant until = loginLockedUntil.get(key);
+            if (until != null) {
+                Instant now = Instant.now();
+                if (now.isBefore(until)) {
+                    long secs = Math.max(1, Duration.between(now, until).getSeconds());
+                    throw new IllegalStateException(
+                            "Too many failed login attempts. Try again in " + secs + " seconds.");
+                }
+                loginLockedUntil.remove(key);
+                failedLoginAttempts.remove(key);
+            }
+        }
+
         User u = userService.findByUsername(username);
         if (u == null || !u.checkPassword(password)) {
+            if (!key.isBlank()) {
+                int next = failedLoginAttempts.getOrDefault(key, 0) + 1;
+                failedLoginAttempts.put(key, next);
+                if (next >= MAX_FAILED_LOGIN_ATTEMPTS) {
+                    loginLockedUntil.put(key, Instant.now().plus(LOGIN_LOCKOUT));
+                    failedLoginAttempts.remove(key);
+                    throw new IllegalStateException(
+                            "Too many failed login attempts. Try again in " + (int) LOGIN_LOCKOUT.getSeconds() + " seconds.");
+                }
+            }
             return null;
+        }
+
+        if (!key.isBlank()) {
+            failedLoginAttempts.remove(key);
+            loginLockedUntil.remove(key);
         }
         if (userService.getUserDb() == null) {
             return u;
@@ -107,5 +157,9 @@ public class UserController {
             return n;
         }
         throw new IllegalStateException("Unsupported user type: " + u.getClass());
+    }
+
+    public UserService.Result updateUserProfile(Long id, String username, String name, String phone, String email, String oldPw, String newPw) {
+        return userService.updateUserProfile(id, username, name, phone, email, oldPw, newPw);
     }
 }

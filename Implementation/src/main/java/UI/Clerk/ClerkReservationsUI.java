@@ -10,6 +10,8 @@ import Domain.Shared.DateRange;
 import UI.Shopping.CombinedBillUI;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -28,8 +30,12 @@ public class ClerkReservationsUI extends JPanel {
     private final ShoppingController shoppingController;
     private final Runnable onBack;
 
+    private final JTextField searchField = new JTextField(18);
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
     private final JList<String> reservationList = new JList<>(listModel);
+    /** Full list from the controller (unfiltered). */
+    private final List<Reservation> allRows = new ArrayList<>();
+    /** Rows currently displayed in the list (filtered). */
     private final List<Reservation> rowCache = new ArrayList<>();
 
     private final JTextField confirmationField = new JTextField(18);
@@ -60,8 +66,11 @@ public class ClerkReservationsUI extends JPanel {
             }
         });
 
-        JPanel north = new JPanel(new BorderLayout(4, 4));
-        north.add(new JLabel("All reservations (select a row to edit or delete):"), BorderLayout.NORTH);
+        JPanel north = new JPanel(new BorderLayout(6, 6));
+        JPanel northTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        northTop.add(new JLabel("Search (guest name or confirmation #):"));
+        northTop.add(searchField);
+        north.add(northTop, BorderLayout.NORTH);
         north.add(new JScrollPane(reservationList), BorderLayout.CENTER);
 
         JPanel form = new JPanel(new GridBagLayout());
@@ -108,7 +117,6 @@ public class ClerkReservationsUI extends JPanel {
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         JButton backBtn = new JButton("← Back");
-        JButton refreshBtn = new JButton("Refresh list");
         JButton newBtn = new JButton("New (clear form)");
         JButton previewBtn = new JButton("Calculate cost");
         JButton createBtn = new JButton("Confirm new reservation");
@@ -117,7 +125,6 @@ public class ClerkReservationsUI extends JPanel {
         JButton guestBillBtn = new JButton("View guest bill");
 
         backBtn.addActionListener(e -> onBack.run());
-        refreshBtn.addActionListener(e -> refreshList());
         newBtn.addActionListener(e -> clearFormForNew());
         previewBtn.addActionListener(e -> handlePreview());
         createBtn.addActionListener(e -> handleCreateConfirm());
@@ -126,7 +133,6 @@ public class ClerkReservationsUI extends JPanel {
         guestBillBtn.addActionListener(e -> handleViewGuestBill());
 
         buttons.add(backBtn);
-        buttons.add(refreshBtn);
         buttons.add(newBtn);
         buttons.add(previewBtn);
         buttons.add(createBtn);
@@ -141,17 +147,21 @@ public class ClerkReservationsUI extends JPanel {
         add(north, BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
 
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            private void changed() { applyFilter(); }
+            @Override public void insertUpdate(DocumentEvent e) { changed(); }
+            @Override public void removeUpdate(DocumentEvent e) { changed(); }
+            @Override public void changedUpdate(DocumentEvent e) { changed(); }
+        });
+
         refreshRoomCombo();
         refreshList();
     }
 
     public void refreshList() {
-        rowCache.clear();
-        rowCache.addAll(reservationController.listReservations());
-        listModel.clear();
-        for (Reservation r : rowCache) {
-            listModel.addElement(formatRow(r));
-        }
+        allRows.clear();
+        allRows.addAll(reservationController.listReservations());
+        applyFilter();
     }
 
     /** Call before showing this panel so room numbers and rows match the database. */
@@ -160,11 +170,68 @@ public class ClerkReservationsUI extends JPanel {
         refreshList();
     }
 
+    /**
+     * Opens the reservations screen with this confirmation selected in the list and form.
+     * Clears the search filter so the row is visible.
+     */
+    public void selectReservationByConfirmation(String confirmationNumber) {
+        if (confirmationNumber == null || confirmationNumber.isBlank()) {
+            return;
+        }
+        searchField.setText("");
+        refreshList();
+        for (int i = 0; i < rowCache.size(); i++) {
+            if (confirmationNumber.equals(rowCache.get(i).getConfirmationNumber())) {
+                reservationList.setSelectedIndex(i);
+                reservationList.ensureIndexIsVisible(i);
+                return;
+            }
+        }
+        JOptionPane.showMessageDialog(this,
+                "Could not find reservation " + confirmationNumber + " in the list.",
+                "Not found",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void applyFilter() {
+        String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
+
+        rowCache.clear();
+        listModel.clear();
+
+        for (Reservation r : allRows) {
+            if (r.isCheckedOutOrExpired()) {
+                continue;
+            }
+
+            String conf = r.getConfirmationNumber() == null ? "" : r.getConfirmationNumber();
+            String guest = r.getGuestName() == null ? "" : r.getGuestName();
+            String hay = (conf + " " + guest).toLowerCase();
+            if (q.isBlank() || hay.contains(q)) {
+                rowCache.add(r);
+                listModel.addElement(formatRow(r));
+            }
+        }
+
+        if (!rowCache.isEmpty()) {
+            reservationList.setSelectedIndex(0);
+        } else {
+            reservationList.clearSelection();
+            currentPreview = null;
+        }
+    }
+
     private void refreshRoomCombo() {
         roomCombo.removeAllItems();
         for (Room r : reservationController.getRooms()) {
             roomCombo.addItem(r.getRoomNumber());
         }
+    }
+
+    public void refresh() {
+        refreshRoomCombo();
+        refreshList();
+        searchField.setText("");
     }
 
     private static String formatRow(Reservation r) {
@@ -208,8 +275,8 @@ public class ClerkReservationsUI extends JPanel {
         if (roomCombo.getItemCount() > 0) {
             roomCombo.setSelectedIndex(0);
         }
-        resetDatePlaceholder(checkInField);
-        resetDatePlaceholder(checkOutField);
+        setDateField(checkInField, LocalDate.now());
+        setDateField(checkOutField, LocalDate.now().plusDays(1));
         guestNameField.setText("");
         creditCardField.setText("");
         guestUsernameField.setText("");
@@ -354,11 +421,12 @@ public class ClerkReservationsUI extends JPanel {
             }
             Window owner = SwingUtilities.getWindowAncestor(this);
             JDialog dlg = new JDialog(owner, "Guest bill", Dialog.ModalityType.APPLICATION_MODAL);
-            CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, r.getGuestUserId());
+            CombinedBillUI bill = new CombinedBillUI(shoppingController, dlg::dispose, r.getGuestUserId(), null);
             bill.refresh();
             dlg.setContentPane(bill);
             dlg.pack();
-            dlg.setSize(Math.max(dlg.getWidth(), 700), Math.max(dlg.getHeight(), 520));
+            // Keep the dialog compact; CombinedBillUI caps table viewport heights.
+            dlg.setSize(Math.max(dlg.getWidth(), 640), Math.max(dlg.getHeight(), 280));
             dlg.setLocationRelativeTo(owner);
             dlg.setVisible(true);
         } catch (IllegalStateException | IllegalArgumentException ex) {

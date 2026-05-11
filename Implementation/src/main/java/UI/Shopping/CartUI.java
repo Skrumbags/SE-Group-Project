@@ -4,8 +4,6 @@ import Controllers.ShoppingController;
 import Domain.Shopping.Cart;
 import Domain.Shopping.CartItem;
 import Domain.Shopping.Item;
-import Domain.Shopping.Purchase;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -15,6 +13,8 @@ public class CartUI extends JPanel {
     private final ShoppingController shoppingController;
     private final Runnable onBackHome;
     private final Runnable onBackToShop;
+    /** After a successful checkout (e.g. navigate guest to combined bill). */
+    private final Runnable onAfterSuccessfulPurchase;
 
     private final DefaultTableModel model = new DefaultTableModel(
             new Object[]{"ProductId", "Name", "Unit price", "Quantity", "Line total"},
@@ -29,10 +29,12 @@ public class CartUI extends JPanel {
     private final JTable table = new JTable(model);
     private final JTextField qtyField = new JTextField("1", 5);
 
-    public CartUI(ShoppingController shoppingController, Runnable onBackHome, Runnable onBackToShop) {
+    public CartUI(ShoppingController shoppingController, Runnable onBackHome, Runnable onBackToShop,
+                  Runnable onAfterSuccessfulPurchase) {
         this.shoppingController = shoppingController;
         this.onBackHome = onBackHome;
         this.onBackToShop = onBackToShop;
+        this.onAfterSuccessfulPurchase = onAfterSuccessfulPurchase;
 
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 12, 12, 12));
@@ -138,12 +140,9 @@ public class CartUI extends JPanel {
                 JOptionPane.OK_CANCEL_OPTION);
         if (ok != JOptionPane.OK_OPTION) return;
         try {
-            Purchase p = shoppingController.purchaseItems();
-            JOptionPane.showMessageDialog(this,
-                    "Purchase complete. Total: $" + String.format("%.2f", p.getTotal()),
-                    "Checkout", JOptionPane.INFORMATION_MESSAGE);
+            shoppingController.purchaseItems();
             refresh();
-            onBackHome.run();
+            onAfterSuccessfulPurchase.run();
         } catch (RuntimeException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Checkout failed", JOptionPane.ERROR_MESSAGE);
         }
