@@ -1,6 +1,7 @@
 package UI.Other;
 
 import Controllers.UserController;
+import UI.GuestPasswordResetDialog;
 import Domain.People.Admin;
 import Domain.People.Clerk;
 import Domain.People.Guest;

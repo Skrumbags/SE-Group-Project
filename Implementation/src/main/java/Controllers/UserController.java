@@ -55,7 +55,6 @@ public class UserController {
         return userService.exists(username);
     }
 
-<<<<<<< HEAD
     public Guest findGuestByEmail(String email) {
         return userService.findGuestByEmail(email);
     }
@@ -63,14 +62,14 @@ public class UserController {
     public UserService.GuestPasswordResetResult resetGuestPassword(String email, String newPassword,
                                                                    String confirmPassword) {
         return userService.resetGuestPassword(email, newPassword, confirmPassword);
-=======
+    }
+
     public boolean emailExists(String email) {
         return userService.emailExists(email);
     }
 
     public boolean employeeIdExists(int employeeId) {
         return userService.employeeIdExists(employeeId);
->>>>>>> b2da699a364942976f550eda673b1c822ccfe770
     }
 
     public UserService getUserService() {
