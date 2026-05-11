@@ -53,6 +53,11 @@ public class PublicUI extends JPanel {
                 }
         );
 
+        createAccountPanel.setRegistrationSuccessAction(() -> {
+            loginPanel.refresh();
+            bodyCards.show(body, "LOGIN");
+        });
+
         JPanel northStack = new JPanel(new GridLayout(2, 1, 0, 6));
         JLabel welcome = new JLabel("Welcome to Hotel Reservation App", SwingConstants.CENTER);
         welcome.setFont(new Font("SansSerif", Font.BOLD, 22));

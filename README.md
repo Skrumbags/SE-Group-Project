@@ -1,4 +1,4 @@
-# Stay & Shop — implementation overview
+# Stay & Shop: implementation overview
 
 This folder is a **Java SE** desktop app: a **hotel stay** side (search rooms, hold availability, reserve) and a **store** side (catalog, cart, checkout, combined bill with stay charges), with **guest**, **clerk**, and **admin** experiences in Swing. Everything durable runs through **SQLite** under `Implementation/`.
 
@@ -18,7 +18,7 @@ Room data, reservation rows, users, products, carts, and purchase headers/lines 
 
 ## How it works together
 
-**Composition root — `Driver.Driver`**  
+**Composition root:** `Driver.Driver`  
 `main` chooses the DB path (`data/database.db` next to the working directory), constructs one instance each of:
 
 - `RoomService`, `ReservationService`, `UserService` (each opens the same SQLite file and applies schema where needed),
@@ -46,7 +46,7 @@ Swing components in `UI/` call methods on `Controllers/*`. Controllers are thin:
 Schema lives in `Implementation/src/main/resources/schema.sql` and is applied through `SchemaInstaller` when connections are opened.
 
 - **Reservations** store room charges as written at confirm time; we do **not** rewrite reservation totals when someone buys from the store.
-- **Payment cards (project-only)**: for this class project we persist the **full credit card number** (digits only) with the reservation so clerk workflows can edit/review it later. **This is not acceptable for a real application**—production systems should never store PAN in plaintext, and should instead use a payment processor + tokenization (store only a token + last4/brand).
+- **Payment cards (project-only)**: for this class project we persist the **full credit card number** (digits only) with the reservation so clerk workflows can edit/review it later. **This is not acceptable for a real application.** Production systems should never store PAN in plaintext, and should instead use a payment processor + tokenization (store only a token + last4/brand).
 - **Purchases** are their own rows (`Purchases`, `PurchaseItems`) keyed by **guest user id**, optionally recording which reservation confirmation was active at checkout for traceability.
 - **Combined bill** is therefore a **read-time aggregation**: `ShoppingService.buildCombinedBill` sums reservation costs and purchase totals for the logged-in guest and wraps them in `Domain.Shared.CombinedBill` for the UI. That keeps two bounded contexts (stay ledger vs store ledger) from corrupting each other while still presenting one number to the guest.
 
@@ -56,27 +56,42 @@ Carts (`Carts`, `CartItems`) are also persisted so a cart survives process resta
 
 ## Why we structured it this way (GRASP, in our terms)
 
-- **Controller** — `SearchController`, `ReservationController`, `ShoppingController`, and `UserController` exist so the UI has a stable, coarse-grained API (“search”, “confirm reservation”, “purchase”) instead of every panel reaching into services and persistence.
-- **Information expert** — overlap and reservation lifecycle rules sit in `ReservationService` and reservation persistence; money and stock rules for checkout sit in `ShoppingService` + `SqliteStorePersistence.purchaseItems` inside a transaction.
-- **Low coupling / high cohesion** — Swing stays in `UI/`; SQL stays in `TechnicalServices/Persistence/`; the middle is domain language (`Reservation`, `Cart`, `Purchase`, services). Changing a screen layout should not force a schema change, and vice versa.
-- **Pure fabrication** — SQLite adapters are invented objects whose job is persistence, not “real world” hotel concepts, so domain types do not carry JDBC.
-- **Protected variations** — `PasswordHasher` centralizes how stored passwords are verified and upgraded; `SchemaInstaller` centralizes how we bootstrap tables from the resource file.
+- **Controller:** `SearchController`, `ReservationController`, `ShoppingController`, and `UserController` exist so the UI has a stable, coarse-grained API (“search”, “confirm reservation”, “purchase”) instead of every panel reaching into services and persistence.
+- **Information expert:** overlap and reservation lifecycle rules sit in `ReservationService` and reservation persistence; money and stock rules for checkout sit in `ShoppingService` + `SqliteStorePersistence.purchaseItems` inside a transaction.
+- **Low coupling / high cohesion:** Swing stays in `UI/`; SQL stays in `TechnicalServices/Persistence/`; the middle is domain language (`Reservation`, `Cart`, `Purchase`, services). Changing a screen layout should not force a schema change, and vice versa.
+- **Pure fabrication:** SQLite adapters are invented objects whose job is persistence, not “real world” hotel concepts, so domain types do not carry JDBC.
+- **Protected variations:** `PasswordHasher` centralizes how stored passwords are verified and upgraded; `SchemaInstaller` centralizes how we bootstrap tables from the resource file.
 
 Polymorphism on `User` lets `LoginUI` branch on role without a giant string switch on job titles, and lets services ask `UserSession` for a `Guest` when a use case is guest-only.
 
 ---
 
-## Build and run
+## Setup / Installation Guide
 
-Use **Maven** from the `Implementation` directory (the one that contains `pom.xml`):
+**What you need**
 
-```bash
-mvn
-```
+- **JDK 25** (matches `maven-compiler-plugin` `<release>` in `Implementation/pom.xml`).
+- **Apache Maven 3.6+** on your PATH.
 
-The POM default goal compiles and runs `Driver.Driver` via the exec plugin. Use a JDK compatible with the `<release>` value in `pom.xml`.
+**Steps**
 
-To wipe local state, delete `data/database.db` (or the whole `data` directory next to the working directory) and start again.
+1. Open a terminal and go to the folder that contains this repo’s `pom.xml`:
+
+   `SE-Group-Project/Implementation`
+
+2. Build and start the Swing app (default Maven goal compiles then runs `Driver.Driver`):
+
+   ```bash
+   mvn
+   ```
+
+3. Optional: run the test suite:
+
+   ```bash
+   mvn test
+   ```
+
+The app creates and uses a SQLite file at `data/database.db` relative to the process working directory (normally `Implementation/`). To reset all stored data, delete `data/database.db` or the whole `data` folder, then run `mvn` again.
 
 ---
 
