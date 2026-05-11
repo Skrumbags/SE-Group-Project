@@ -6,10 +6,13 @@ import Domain.Services.UserService;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.Objects;
 
 public class CreateAccountUI extends JPanel {
 
     private final UserController userController;
+    /** After a successful registration (after the success dialog is dismissed). */
+    private Runnable registrationSuccessAction = () -> {};
 
     private final JTextField usernameField  = new JTextField(15);
     private final JPasswordField passwordField = new JPasswordField(15);
@@ -35,6 +38,14 @@ public class CreateAccountUI extends JPanel {
         add(registerButton);
 
         registerButton.addActionListener(e -> handleAddUser());
+    }
+
+    /**
+     * Called after a successful registration and the success message is closed.
+     * Typical use: clear this form and show the login card.
+     */
+    public void setRegistrationSuccessAction(Runnable action) {
+        this.registrationSuccessAction = Objects.requireNonNullElse(action, () -> {});
     }
 
     private void handleAddUser() {
@@ -90,9 +101,14 @@ public class CreateAccountUI extends JPanel {
         UserService.Result result = userController.addGuest(username, password, name, phone, email);
 
         switch (result) {
-            case SUCCESS ->
-                    JOptionPane.showMessageDialog(this,
-                            "Guest \"" + username + "\" registered successfully!");
+            case SUCCESS -> {
+                JOptionPane.showMessageDialog(this,
+                        "Guest \"" + username + "\" registered successfully.\nYou can sign in now.",
+                        "Account created",
+                        JOptionPane.INFORMATION_MESSAGE);
+                refresh();
+                registrationSuccessAction.run();
+            }
             case DUPLICATE_USERNAME ->
                     JOptionPane.showMessageDialog(this,
                             "Username \"" + username + "\" is already taken. Please choose another.",
